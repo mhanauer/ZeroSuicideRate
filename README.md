@@ -89,9 +89,47 @@ age_at_death_dat = subset(age_at_death_range, age_at_death == 0)
 age_at_death_dat
 
 age_at_death_range = subset(age_at_death_range, age_at_death > 0)
-range(age_at_death_range, na.rm = TRUE)
-describe.factor(age_at_death_range, decr.order = FALSE)
+range(age_at_death_range$age_at_death, na.rm = TRUE)
+describe.factor(age_at_death_range$age_at_death, decr.order = FALSE)
 ```
+Questions to answer
+Raw number of people who died by suicide while on the pathway at the time of death: 27
+
+Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death)
+
+Raw number of people who died by suicide who had never been on the pathway at the time of death
+```{r}
+zero_suicide_questions = data.frame(path_enroll_death = zero_suicide_dat$path_enroll_death, current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date)
+head(zero_suicide_questions)
+## Get rid of anyone before implementation
+zero_suicide_questions = subset(zero_suicide_questions, path_enroll_death != "Pre_Path")
+## Q1 answer
+describe.factor(zero_suicide_questions$path_enroll_death)
+### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
+zero_suicide_q2 = zero_suicide_questions
+zero_suicide_q2$current_path_enroll_date[is.na(zero_suicide_q2$current_path_enroll_date)] = "2020-01-01"
+### Now subset for anyone who is not "2020-01-01"
+zero_suicide_q2 = subset(zero_suicide_q2, current_path_enroll_date != "2020-01-01")
+#### Now we need to find if the date for the death is after the disenrollment date make a new variable
+sum(is.na(zero_suicide_q2))
+zero_suicide_q2$death_after_diss = ifelse(zero_suicide_q2$death_date-zero_suicide_q2$current_path_disenroll_date > 0, 1,0)
+head(zero_suicide_q2)
+### Q2 answer
+describe.factor(zero_suicide_q2$death_after_diss)
+
+#### Now q3 those who have current path enroll as NA assuming means never on the path
+zero_suicide_q3 = zero_suicide_questions
+zero_suicide_q3$current_path_enroll_date[is.na(zero_suicide_q3$current_path_enroll_date)] = "2020-01-01"
+zero_suicide_q3 = subset(zero_suicide_q3, current_path_enroll_date == "2020-01-01")
+describe.factor(zero_suicide_q3$current_path_enroll_date)
+dim(zero_suicide_q3)[1]
+### Q3 answer
+dim(zero_suicide_questions)
+### Almost everyone who was not on the pathway at the time death was never on the pathway 69 versus 67
+describe.factor(zero_suicide_questions$path_enroll_death)
+```
+
+
 Look at variables and make sure nothing goofy is in them
 Need to check the dates (check ranges)
 
@@ -150,12 +188,3 @@ zero_suicide_dat$age_at_death_cat = ifelse(zero_suicide_dat$age_at_death <= 14, 
 head(zero_suicide_dat)
 describe.factor(zero_suicide_dat$age_at_death_cat)
 ```
-
-
-
-
-
-
-
-
-
