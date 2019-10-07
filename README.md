@@ -12,10 +12,9 @@ Libraring packages
 ```{r}
 library(stringr)
 library(prettyR)
-library(Zelig)
-library(BEST)
-library(MCMCpack)
+library(rstanarm)
 library(MissMech)
+library(lubridate)
 ```
 Load in data. Need to check variables of interest are doing ok.
 Check descriptives make sure nothing is out of bounds
@@ -66,7 +65,13 @@ zero_suicide_dat$dob = NULL
 #Not implemented yet / 5 / Pre_Path
 
 describe.factor(zero_suicide_dat$path_enroll_death)
+### See if something changes 
 zero_suicide_dat$path_enroll_death = ifelse(zero_suicide_dat$path_enroll_death == " Y", "Y", zero_suicide_dat$path_enroll_death)
+
+#Test if the numbers are the same
+#dat_test = data.frame(path_enroll_death_test = zero_suicide_dat$path_enroll_death_test, path_enroll_death = zero_suicide_dat$path_enroll_death)
+#head(dat_test)
+#dat_test
 
 zero_suicide_dat$path_enroll_death = ifelse(zero_suicide_dat$path_enroll_death == 5, "Pre_Path", ifelse(zero_suicide_dat$path_enroll_death == 2, "N", ifelse(zero_suicide_dat$path_enroll_death == 7, "Y", ifelse(zero_suicide_dat$path_enroll_death == 8, "Y", "Wrong"))))
 describe.factor(zero_suicide_dat$path_enroll_death)
@@ -80,7 +85,7 @@ zero_suicide_dat$total_kept_services = as.numeric(zero_suicide_dat$total_kept_se
 
 ```
 Review age for errors
-Two people with zero need to get those corrected
+No errors
 ```{r}
 age_at_death_range = data.frame(death_date = zero_suicide_dat$death_date, age_at_death = age_at_death)
 range(age_at_death_range$age_at_death, na.rm = TRUE)
@@ -93,7 +98,7 @@ range(age_at_death_range$age_at_death, na.rm = TRUE)
 describe.factor(age_at_death_range$age_at_death, decr.order = FALSE)
 ```
 Questions to answer
-Raw number of people who died by suicide while on the pathway at the time of death: 27
+Raw number of people who died by suicide while on the pathway at the time of death: 
 
 Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death)
 
@@ -105,6 +110,21 @@ head(zero_suicide_questions)
 zero_suicide_questions = subset(zero_suicide_questions, path_enroll_death != "Pre_Path")
 ## Q1 answer
 describe.factor(zero_suicide_questions$path_enroll_death)
+## Check question, by anyone who is not NA on current path enrollment
+describe.factor(zero_suicide_questions$current_path_enroll_date)
+test_q1 = data.frame(current_path_disenroll_date = zero_suicide_questions$current_path_disenroll_date)
+## Any date before 2020-02-02 counts, because that is all dates
+##### So anyone who had a disenrollment date, because means they were on the pathway and died 
+test_q1$current_path_disenroll_date_bin = ifelse(test_q1$current_path_disenroll_date < "2020-01-01", 1 ,0)
+describe.factor(test_q1$current_path_disenroll_date_bin)
+test_q1$current_path_disenroll_date_bin
+### Off by two
+##Figure out where they are
+dat_test_review = data.frame(current_path_disenroll_date_bin = test_q1$current_path_disenroll_date_bin, path_enroll_death = zero_suicide_questions$path_enroll_death, death_date = zero_suicide_questions$death_date)
+head(dat_test_review)
+dat_test_review[is.na(dat_test_review)] = "N" 
+dat_test_review_test = subset(dat_test_review, current_path_disenroll_date_bin == "1" & path_enroll_death == "N")
+dat_test_review_test
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
 zero_suicide_q2 = zero_suicide_questions
 zero_suicide_q2$current_path_enroll_date[is.na(zero_suicide_q2$current_path_enroll_date)] = "2020-01-01"
