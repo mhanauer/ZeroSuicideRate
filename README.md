@@ -103,43 +103,41 @@ zero_suicide_q1 = subset(zero_suicide_questions, current_path_enroll_date < "202
 ### Now need number to get rid of those who were on the pathway, but died after disenrollment (i.e. question three)
 zero_suicide_q1$died_after_diss = ifelse(zero_suicide_q1$death_date > zero_suicide_q1$current_path_disenroll_date, 1, 0)
 
-## Question 3 answer
+## Q3 answer
 describe.factor(zero_suicide_q1$died_after_diss)
+
 ##### Now get rid of those people who died after diss
 zero_suicide_q1 = subset(zero_suicide_q1, died_after_diss == 0)
 zero_suicide_q1
+
 ## Q1 answer
 dim(zero_suicide_q1)
 
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
-### May not match up with question, because the variable we have is whether someone died on the pathway and does tell us the difference between those who never on the pathway and those died while not on the pathway
-zero_suicide_q2 = zero_suicide_questions
-zero_suicide_q2$current_path_enroll_date[is.na(zero_suicide_q2$current_path_disenroll_date)] = "2020-01-01"
-### Now subset for anyone who is not "2020-01-01"
+
 zero_suicide_q2 = subset(zero_suicide_q2, current_path_disenroll_date != "2020-01-01")
 #### Now we need to find if the date for the death is after the disenrollment date make a new variable
 sum(is.na(zero_suicide_q2))
 zero_suicide_q2$death_after_diss = ifelse(zero_suicide_q2$death_date-zero_suicide_q2$current_path_disenroll_date > 0, 1,0)
 head(zero_suicide_q2)
+
 ### Q2 answer
 describe.factor(zero_suicide_q2$death_after_diss)
 
-#### Now q3 those who have current path enroll as NA assuming means never on the path
-zero_suicide_q3 = zero_suicide_questions
-zero_suicide_q3$current_path_enroll_date[is.na(zero_suicide_q3$current_path_disenroll_date)] = "2020-01-01"
-zero_suicide_q3 = subset(zero_suicide_q3, current_path_enroll_date == "2020-01-01")
-describe.factor(zero_suicide_q3$current_path_enroll_date)
-
-
-dim(zero_suicide_q3)[1]
-### Q3 answer
-dim(zero_suicide_questions)
-### Almost everyone who was not on the pathway at the time death was never on the pathway 69 versus 67
-describe.factor(zero_suicide_questions$path_enroll_death)
-
-16+67
 
 dim(zero_suicide_questions)
+```
+Answers
+```{r}
+## Q1 answer
+dim(zero_suicide_q1)[1]
+
+### Q2 answer
+describe.factor(zero_suicide_q2$death_after_diss)
+
+## Q3 answer
+describe.factor(zero_suicide_q1$died_after_diss)
+
 ```
 
 
