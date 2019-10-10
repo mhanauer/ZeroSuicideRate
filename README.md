@@ -81,8 +81,6 @@ zero_suicide_dat$num_prior_hospital = as.numeric(zero_suicide_dat$num_prior_hosp
 
 #### Make total number of kept services numeric
 zero_suicide_dat$total_kept_services = as.numeric(zero_suicide_dat$total_kept_services)
-
-
 ```
 Questions to answer
 Raw number of people who died by suicide while on the pathway at the time of death: 13
@@ -199,3 +197,44 @@ zero_suicide_dat$age_at_death_cat = ifelse(zero_suicide_dat$age_at_death <= 14, 
 head(zero_suicide_dat)
 describe.factor(zero_suicide_dat$age_at_death_cat)
 ```
+First aggregate then implementation variable
+No covariates, because there is only a few deaths per month so just stating whether that person is male or female, etc.
+```{r}
+### Rounds down to the month so it is in the right month
+zero_suicide_dat_agg$death_date = floor_date(zero_suicide_dat_agg$death_date, unit = "months")
+zero_suicide_dat_agg$suicide = rep(1, dim(zero_suicide_dat_agg)[1])
+
+library(dplyr)
+
+zero_suicide_dat_agg = data.frame(death_date = zero_suicide_dat_agg$death_date, suicide = zero_suicide_dat_agg$suicide)
+head(zero_suicide_dat_agg)
+zero_suicide_dat_agg = zero_suicide_dat_agg %>%
+  group_by(death_date) %>%
+  summarise_all(funs(sum), na.rm = TRUE)
+
+zero_suicide_dat_agg
+```
+
+
+Get adjusted for Centerstone.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
