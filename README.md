@@ -94,22 +94,22 @@ head(zero_suicide_questions)
 ## Get rid of anyone before implementation
 zero_suicide_questions = subset(zero_suicide_questions, path_enroll_death != "Pre_Path")
 zero_suicide_questions[is.na(zero_suicide_questions)] = "2020-01-01"
-zero_suicide_questions
+dim(zero_suicide_questions)
 ## Assuming NAs are N's
 ### Number of people never on the pathway
 zero_suicide_q1 = subset(zero_suicide_questions, current_path_enroll_date < "2020-01-01")
 ### Now need number to get rid of those who were on the pathway, but died after disenrollment (i.e. question three)
 zero_suicide_q1$died_after_diss = ifelse(zero_suicide_q1$death_date > zero_suicide_q1$current_path_disenroll_date, 1, 0)
 
-## Q3 answer
-describe.factor(zero_suicide_q1$died_after_diss)
 
 ##### Now get rid of those people who died after diss
 zero_suicide_q1 = subset(zero_suicide_q1, died_after_diss == 0)
 zero_suicide_q1
 
 ## Q1 answer
-dim(zero_suicide_q1)
+dim(zero_suicide_q1)[1]
+
+
 
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
 
@@ -121,6 +121,10 @@ head(zero_suicide_q2)
 
 ### Q2 answer
 describe.factor(zero_suicide_q2$death_after_diss)
+
+#### Q3 answer
+zero_suicide_q3 = subset(zero_suicide_questions, current_path_enroll_date == "2020-01-01")
+dim(zero_suicide_q3)[1]
 
 
 dim(zero_suicide_questions)
@@ -134,7 +138,7 @@ dim(zero_suicide_q1)[1]
 describe.factor(zero_suicide_q2$death_after_diss)
 
 ## Q3 answer
-describe.factor(zero_suicide_q1$died_after_diss)
+dim(zero_suicide_q3)[1]
 
 ```
 
@@ -234,7 +238,112 @@ zero_suicide_dat_agg = zero_suicide_dat_agg[order(zero_suicide_dat_agg$death_dat
 zero_suicide_dat_agg
 write.csv(zero_suicide_dat_agg, "zero_suicide_dat_agg.csv", row.names = FALSE)
 ```
-Develop models
+Plots and descriptives
+```{r}
+zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
+library(descr)
+
+## Mean comparison
+compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
+
+##Number of people who died while zero suicide was fully implemented
+zero_suicide_dat_agg %>%
+  group_by(zero_suicide) %>%
+  summarise(suicide_by_treat = sum(suicide))
+library(ggplot2)
+
+### 
+zero_suicide_dat_agg$death_date
+
+zero_suicide_dat_agg$death_date[144] 
+
+library(scales)
+min <- as.Date("2002-1-1")
+max <- as.Date("2019-1-1")
+
+ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
+  geom_line()+
+  labs(title="Suicides by Year")+
+  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
+  xlab("Date of Death")+
+  ylab("Count of Suicides")+
+  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
+```
+Develop the model with poisson and neg comparison test for residuals afterward 
+```{r}
+model_p = glm(suicide ~ zero_suicide, family = "poisson", data = zero_suicide_dat_agg)
+summary(model_p)
+library(lmtest)
+library(sandwich)
+
+results_robust = coeftest(model_p, vcov = sandwich)
+results_robust
+exp(results_robust[,1:2])
+con_robust =  coefci(model_p, vcov = sandwich)
+con_robust
+exp(con_robust[2,1:2])
+
+library(MASS)
+
+model_nb = glm.nb(suicide ~ zero_suicide, data = zero_suicide_dat_agg)
+summary(model_nb)
+AIC(model_p)
+AIC(model_nb)
+BIC(model_p)
+BIC(model_nb)
+pchisq(2 * (logLik(model_p) - logLik(model_nb)), df = 1, lower.tail = FALSE)
+
+```
+Review final model looks good.
+```{r}
+residModelH = residuals(model_p)
+hist(residModelH)
+plot(zero_suicide_dat_agg$death_date, residModelH)
+range(predict.glm(model_p))
+range(exp(residModelH))
+acf(residModelH)
+pacf(residModelH)
+
+### Use other test to test whether the data is stationary
+library(urca)
+lag_n_short = c(2:10)
+mean_station_short = list()
+for(i in 1:length(lag_n_short)){
+mean_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+ = lag_n_short[[i]])
+mean_station_short[[i]] = summary(mean_station_short[[i]])
+}
+mean_station_short
+
+lag_n_long = c(11:20)
+mean_station_long = list()
+for(i in 1:length(lag_n_long)){
+mean_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+ = lag_n_long[[i]])
+mean_station_long[[i]] = summary(mean_station_long[[i]])
+}
+mean_station_long
+
+
+lag_n_short = c(2:10)
+trend_station_short = list()
+for(i in 1:length(lag_n_short)){
+trend_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+ = lag_n_short[[i]])
+trend_station_short[[i]] = summary(trend_station_short[[i]])
+}
+trend_station_short
+
+lag_n_long = c(11:20)
+trend_station_long = list()
+for(i in 1:length(lag_n_long)){
+trend_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+ = lag_n_long[[i]])
+trend_station_long[[i]] = summary(trend_station_long[[i]])
+}
+trend_station_long
+```
+
 
 
 
