@@ -94,22 +94,22 @@ head(zero_suicide_questions)
 ## Get rid of anyone before implementation
 zero_suicide_questions = subset(zero_suicide_questions, path_enroll_death != "Pre_Path")
 zero_suicide_questions[is.na(zero_suicide_questions)] = "2020-01-01"
-zero_suicide_questions
+dim(zero_suicide_questions)
 ## Assuming NAs are N's
 ### Number of people never on the pathway
 zero_suicide_q1 = subset(zero_suicide_questions, current_path_enroll_date < "2020-01-01")
 ### Now need number to get rid of those who were on the pathway, but died after disenrollment (i.e. question three)
 zero_suicide_q1$died_after_diss = ifelse(zero_suicide_q1$death_date > zero_suicide_q1$current_path_disenroll_date, 1, 0)
 
-## Q3 answer
-describe.factor(zero_suicide_q1$died_after_diss)
 
 ##### Now get rid of those people who died after diss
 zero_suicide_q1 = subset(zero_suicide_q1, died_after_diss == 0)
 zero_suicide_q1
 
 ## Q1 answer
-dim(zero_suicide_q1)
+dim(zero_suicide_q1)[1]
+
+
 
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
 
@@ -121,6 +121,10 @@ head(zero_suicide_q2)
 
 ### Q2 answer
 describe.factor(zero_suicide_q2$death_after_diss)
+
+#### Q3 answer
+zero_suicide_q3 = subset(zero_suicide_questions, current_path_enroll_date == "2020-01-01")
+dim(zero_suicide_q3)[1]
 
 
 dim(zero_suicide_questions)
@@ -199,7 +203,15 @@ describe.factor(zero_suicide_dat$age_at_death_cat)
 ```
 First aggregate then implementation variable
 No covariates, because there is only a few deaths per month so just stating whether that person is male or female, etc.
+
+So you have to get the zeros, but R doesn't know when there is a zero, because it is aggregating by death date.  If no one died that month, then we would not have any data.  
+
+Are there any variables that would allow me aggregate with zeros?  Don't think so? So just manually add them.
+
+Use the previous aggregation as start then add from there.
+
 ```{r}
+zero_suicide_dat_agg = zero_suicide_dat
 ### Rounds down to the month so it is in the right month
 zero_suicide_dat_agg$death_date = floor_date(zero_suicide_dat_agg$death_date, unit = "months")
 zero_suicide_dat_agg$suicide = rep(1, dim(zero_suicide_dat_agg)[1])
@@ -208,15 +220,41 @@ library(dplyr)
 
 zero_suicide_dat_agg = data.frame(death_date = zero_suicide_dat_agg$death_date, suicide = zero_suicide_dat_agg$suicide)
 head(zero_suicide_dat_agg)
+
 zero_suicide_dat_agg = zero_suicide_dat_agg %>%
   group_by(death_date) %>%
-  summarise_all(funs(sum), na.rm = TRUE)
+  summarise_all(funs(sum))
 
+zero_suicide_dat_agg = na.omit(zero_suicide_dat_agg)
+## Get rid of first person outlier in 2001
+zero_suicide_dat_agg = zero_suicide_dat_agg[-c(1),]
 zero_suicide_dat_agg
+
+zeros = data.frame(death_date = c("2002-09-01","2002-12-01","2003-03-01", "2003-04-01", "2003-12-01", "2004-1-01", "2004-3-01", "2004-07-01", "2004-10-01", "2005-01-01","2005-04-01", "2005-05-01", "2005-07-01", "2005-09-01", "2005-10-01", "2005-12-01", "2006-03-01", "2006-05-01", "2006-09-01", "2007-05-01", "2007-06-01", "2007-07-01", "2007-08-01", "2007-09-01", "2007-11-01", "2007-12-01", "2008-02-01", "2008-03-01", "2008-05-01", "2008-10-01", "2008-06-01", "2009-06-01", "2010-01-01", "2010-04-01", "2010-05-01", "2010-07-01", "2010-12-01", "2011-02-01", "2011-03-01", "2011-05-01", "2011-07-01", "2011-08-01", "2011-09-01", "2011-10-01", "2011-11-01", "2012-12-01", "2012-03-01", "2012-07-01", "2012-11-01", "2013-03-01", "2013-04-01", "2013-08-01", "2013-10-01", "2014-06-01", "2014-07-01", "2014-08-01", "2014-10-01", "2014-12-01", "2015-02-01", "2015-04-01", "2015-08-01", "2015-09-01", "2016-03-01", "2016-04-01", "2016-06-01", "2016-07-01", "2016-11-01", "2016-12-01", "2017-02-01", "2017-06-01", "2017-11-01", "2018-06-01", "2018-10-01", "2018-11-01", "2018-12-01", "2019-01-01"))
+zeros = data.frame(zeros, suicide = rep(0, dim(zeros)[1]))
+zeros$death_date = ymd(zeros$death_date)
+zero_suicide_dat_agg = rbind(zero_suicide_dat_agg, zeros)
+zero_suicide_dat_agg = zero_suicide_dat_agg[order(zero_suicide_dat_agg$death_date),]
+zero_suicide_dat_agg
+write.csv(zero_suicide_dat_agg, "zero_suicide_dat_agg.csv", row.names = FALSE)
+```
+Plots and descriptives
+```{r}
+zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
+library(descr)
+
+## Mean comparison
+compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
+
+##Number of people who died while zero suicide was implemented
+zero_suicide_dat_agg %>%
+  group_by(zero_suicide) %>%
+  summarise(suicide_by_treat = sum(suicide))
 ```
 
 
-Get adjusted for Centerstone.
+
+Get adjusted rates for Centerstone.
 
 
 
