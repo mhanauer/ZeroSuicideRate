@@ -1,5 +1,5 @@
 ---
-title: "AMA Results"
+title: "Zero Suicide Rate"
 output:
   pdf_document: default
   html_document: default
@@ -343,11 +343,34 @@ trend_station_long[[i]] = summary(trend_station_long[[i]])
 }
 trend_station_long
 ```
+Need number of deaths per year per age group and total number of people in each age group.  Then you can follow the formula in the excel sheet.
+Need total deaths by age group per year
+
+So create an age group variable
+
+Then get the counts per year per age group
+
+Got rid of two people with missing death dates, but we know died by suicide.
+```{r}
+range(zero_suicide_dat$age_at_death, na.rm = TRUE)
 
 
+zero_suicide_cdc = data.frame(death_date = zero_suicide_dat$death_date, suicide = zero_suicide_dat$suicide, age_at_death = zero_suicide_dat$age_at_death)
 
+zero_suicide_cdc$suicide = rep(1, dim(zero_suicide_cdc)[1])
 
-Get adjusted rates for Centerstone.
+zero_suicide_cdc$age_at_death_cat = ifelse(zero_suicide_cdc$age_at_death <= 14, "5-14", ifelse(zero_suicide_cdc$age_at_death <= 24, "15-24", ifelse(zero_suicide_cdc$age_at_death <= 34, "25-34", ifelse(zero_suicide_cdc$age_at_death <= 44, "35-44", ifelse(zero_suicide_cdc$age_at_death <= 54, "45-54", ifelse(zero_suicide_cdc$age_at_death <= 64, "55-64", ifelse(zero_suicide_cdc$age_at_death <= 74, "65-74", "75+")))))))
+zero_suicide_cdc$death_date = floor_date(zero_suicide_cdc$death_date, unit = "year")
+
+zero_suicide_cdc_complete = na.omit(zero_suicide_cdc)
+centerstone_cdc = zero_suicide_cdc_complete %>%
+  group_by(death_date, age_at_death_cat) %>%
+  summarise(death_per_year_per_age_cat = sum(suicide))
+
+centerstone_cdc
+
+```
+
 
 
 
