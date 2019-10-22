@@ -23,6 +23,10 @@ setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/Matt'sData")
 zero_suicide = read.csv("zero_suicide.csv", header= TRUE, na.strings = c("multiple ???", "NA"))
 zero_suicide_denom = read.csv("zero_suicide_denom.csv", header = TRUE)
 
+setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/CDC")
+cdc_rate = read.csv("cdc_rate.csv", header = TRUE)
+centerstone_cdc_rate = read.csv("centerstone_cdc_rate.csv", header = TRUE)
+
 zero_suicide_denom
 
 ```
@@ -116,8 +120,8 @@ dim(zero_suicide_q1)[1]
 
 
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
-
-zero_suicide_q2 = subset(zero_suicide_q2, current_path_disenroll_date != "2020-01-01")
+zero_suicide_q2 = 
+zero_suicide_q2 = subset(zero_suicide_questions, current_path_disenroll_date != "2020-01-01")
 #### Now we need to find if the date for the death is after the disenrollment date make a new variable
 sum(is.na(zero_suicide_q2))
 zero_suicide_q2$death_after_diss = ifelse(zero_suicide_q2$death_date-zero_suicide_q2$current_path_disenroll_date > 0, 1,0)
@@ -200,10 +204,7 @@ mean(zero_suicide_dat$total_kept_services, na.rm =TRUE)
 
 ### Average age at death
 mean(zero_suicide_dat$age_at_death, na.rm = TRUE)
-### Count of death by CDC defined categories 5-14, 15-24, 25-34, 35-44, 45-54, 55-64, 65-74, 75-84 
-zero_suicide_dat$age_at_death_cat = ifelse(zero_suicide_dat$age_at_death <= 14, "5-14", ifelse(zero_suicide_dat$age_at_death <= 24, "15-24", ifelse(zero_suicide_dat$age_at_death <= 34, "25-34", ifelse(zero_suicide_dat$age_at_death <= 44, "35-44", ifelse(zero_suicide_dat$age_at_death <= 54, "45-54", ifelse(zero_suicide_dat$age_at_death <= 64, "55-64", ifelse(zero_suicide_dat$age_at_death <= 74, "65-74", ifelse(zero_suicide_dat$age_at_death <= 84, "75-84", "85+"))))))))
-head(zero_suicide_dat)
-describe.factor(zero_suicide_dat$age_at_death_cat)
+sd(zero_suicide_dat$age_at_death, na.rm = TRUE)
 ```
 First aggregate then implementation variable
 No covariates, because there is only a few deaths per month so just stating whether that person is male or female, etc.
@@ -521,10 +522,9 @@ Got rid of two people with missing death dates, but we know died by suicide.
 ```{r}
 range(zero_suicide_dat$age_at_death, na.rm = TRUE)
 
+zero_suicide_dat$suicide = rep(1, dim(zero_suicide_dat)[1])
 
 zero_suicide_cdc = data.frame(death_date = zero_suicide_dat$death_date, suicide = zero_suicide_dat$suicide, age_at_death = zero_suicide_dat$age_at_death)
-
-zero_suicide_cdc$suicide = rep(1, dim(zero_suicide_cdc)[1])
 
 zero_suicide_cdc$age_at_death_cat = ifelse(zero_suicide_cdc$age_at_death <= 14, "5-14", ifelse(zero_suicide_cdc$age_at_death <= 24, "15-24", ifelse(zero_suicide_cdc$age_at_death <= 34, "25-34", ifelse(zero_suicide_cdc$age_at_death <= 44, "35-44", ifelse(zero_suicide_cdc$age_at_death <= 54, "45-54", ifelse(zero_suicide_cdc$age_at_death <= 64, "55-64", ifelse(zero_suicide_cdc$age_at_death <= 74, "65-74", "75+")))))))
 zero_suicide_cdc$death_date = floor_date(zero_suicide_cdc$death_date, unit = "year")
@@ -535,26 +535,143 @@ centerstone_cdc = zero_suicide_cdc_complete %>%
   summarise(death_per_year_per_age_cat = sum(suicide))
 
 centerstone_cdc
+```
+#################
+CDC Analysis
+Data cleaning
+#################
+Notes
+Load in the data for cdc and centerstone cdc rates
+```{r}
+
+
+setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/CDC")
+cdc_rate = read.csv("cdc_rate.csv", header = TRUE)
+centerstone_cdc_pop = read.csv("centerstone_cdc_pop.csv", header = TRUE)
+## Adjust adjusted rate from cdc
+head(cdc_rate)
+### Centerstone totals population by age
+head(centerstone_cdc_pop)
+dim(centerstone_cdc_pop)
+### Centerstone total suicides
+centerstone_cdc_suicides = centerstone_cdc
+centerstone_cdc_suicides
+### Subset set cdc to only dates in cdc rate
+centerstone_cdc_suicides = subset(centerstone_cdc_suicides, death_date > "2008-01-01" & death_date < "2018-01-01")
+centerstone_cdc_suicides = subset(centerstone_cdc_suicides, age_at_death_cat != "5-14")
+centerstone_cdc_suicides
+write.csv(centerstone_cdc_suicides, "cdc_centerstone_suicides.csv", row.names = FALSE)
+#### Need to add in zero rows for those counts that are zero
+#2010	15-24
+#2010	55-64
+#2010	65-74
+#2011	45-54
+#2011	55-64
+#2011	65-74
+#2012	65-74
+#2013	15-24
+#2013	65-74
+#2014	55-64
+#2014	65-74
+#2015	65-74
+#2016	15-24
+#2016	65-74
+#2017	65-74
+
+### Generate data set with missing zero dates and then rbind and order next
+missing_zeros = data.frame(death_date = c("2010-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01","2011-01-01","2012-01-01", "2013-01-01", "2013-01-01", "2014-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2016-01-01", "2017-01-01"), age_at_death_cat = c("15-24", "55-64", "65-74", "45-54", "55-64", "65-74", "65-74", "15-24", "65-74", "55-64", "65-74", "65-74", "15-24", "65-74", "65-74"), death_per_year_per_age_cat = rep(0, 15))
+
+missing_zeros$death_date = ymd(missing_zeros$death_date)
+
+missing_zeros
+write.csv(centerstone_cdc_suicides, "centerstone_cdc_suicides.csv", row.names = FALSE)
+centerstone_cdc_suicides = read.csv("centerstone_cdc_suicides.csv", header = TRUE)
+write.csv(missing_zeros, "missing_zeros.csv",row.names = FALSE)
+missing_zeros = read.csv("missing_zeros.csv", header= TRUE)
+centerstone_cdc_suicides  = rbind(centerstone_cdc_suicides, missing_zeros)
+centerstone_cdc_suicides
+### Now order by year then age group
+### Create a grouping variable to group by age death cat not working
+centerstone_cdc_suicides$age_group = ifelse(centerstone_cdc_suicides$age_at_death_cat == "15-24", 0, ifelse(centerstone_cdc_suicides$age_at_death_cat == "25-34", 1, ifelse(centerstone_cdc_suicides$age_at_death_cat == "35-44", 2, ifelse(centerstone_cdc_suicides$age_at_death_cat == "45-54", 3, ifelse(centerstone_cdc_suicides$age_at_death_cat == "55-64", 4, ifelse(centerstone_cdc_suicides$age_at_death_cat == "65-74", 5, "Wrong"))))))
+describe.factor(centerstone_cdc_suicides$age_group)
+
+
+centerstone_cdc_suicides = centerstone_cdc_suicides[order(centerstone_cdc_suicides$death_date, centerstone_cdc_suicides$age_group),]
+
+##### Now grab population from pop data set
+centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
+####
+### Dates are all in order
+centerstone_cdc_suicides$death_date == centerstone_cdc_suicides$death_date
+centerstone_cdc_suicides$age_group = NULL
+### Now we need to divide by the number by the pop multiple by 100,000
+centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$death_per_year_per_age_cat/centerstone_cdc_suicides$pop)*100000
+centerstone_cdc_suicides
+
+### Then we need to get the total pop for each year and rep that six times
+year_pop_centerstone = centerstone_cdc_suicides %>%
+  group_by(death_date)%>%
+  summarise_if(is.numeric, sum)
+year_pop_centerstone = year_pop_centerstone$pop
+year_pop_centerstone = rep(year_pop_centerstone, each = 6)
+year_pop_centerstone
+length(year_pop_centerstone)
+
+### Now combine data with crude rates with the pop per year data.  Then take the total pop per age divided by total pop to get the percentage associated with that age group
+
+centerstone_cdc_suicides$year_pop_centerstone = year_pop_centerstone
+head(centerstone_cdc_suicides)
+centerstone_cdc_suicides$age_adjust = centerstone_cdc_suicides$pop / centerstone_cdc_suicides$year_pop_centerstone
+
+#### Now take the crude rate multiplied by the age adjust 
+centerstone_cdc_suicides$age_adjust_rate = centerstone_cdc_suicides$crude_rate*centerstone_cdc_suicides$age_adjust
+centerstone_cdc_suicides
+
+#### Now sum by year 
+centerstone_cdc_suicides_rate = centerstone_cdc_suicides %>%
+  group_by(death_date)%>%
+  summarise_if(is.numeric, sum)
+centerstone_cdc_suicides_rate
+
+```
+Now plot the CDC rate 
+```{r}
+min <- as.Date("2009-1-1")
+max <- as.Date("2017-1-1")
+
+ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
+  geom_line()+  
+  labs(title="Centerstone Age Adjusted Suicide (Per 100,000 Clients) Rate  2009 to 2017")+
+   geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")
+  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))   
+############
+  
+ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
+  geom_line()+
+  labs(title="Suicides by Year")+
+  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
+  xlab("Date of Death")+
+  ylab("Count of Suicides")+
+  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
 
 ```
 
+### 
+zero_suicide_dat_agg$death_date
 
+zero_suicide_dat_agg$death_date[144] 
 
+library(scales)
+min <- as.Date("2002-1-1")
+max <- as.Date("2019-1-1")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
+  geom_line()+
+  labs(title="Suicides by Year")+
+  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
+  xlab("Date of Death")+
+  ylab("Count of Suicides")+
+  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
 
 
 
