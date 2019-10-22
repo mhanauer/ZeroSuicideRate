@@ -632,47 +632,40 @@ centerstone_cdc_suicides_rate = centerstone_cdc_suicides %>%
   group_by(death_date)%>%
   summarise_if(is.numeric, sum)
 centerstone_cdc_suicides_rate
+#### Clean up CDC rate
+cdc_rate = subset(cdc_rate, year > 2008)
+cdc_rate$year = paste0(cdc_rate$year,"-01", "-01")
+cdc_rate$year = ymd(cdc_rate$year)
+
 
 ```
 Now plot the CDC rate 
 ```{r}
-min <- as.Date("2009-1-1")
-max <- as.Date("2017-1-1")
 
-ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
+
+centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
   geom_line()+  
-  labs(title="Centerstone Age Adjusted Suicide (Per 100,000 Clients) Rate  2009 to 2017")+
-   geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")
-  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))   
+  labs(title="Centerstone Age Adjusted Suicide (Per 100,000 Clients) Rate 2009 to 2017")+
+    scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
+  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
+  xlab("Year")+
+  ylab("Centerstone Age Adjusted Suicide Rate")+
+  theme(axis.title.y= element_text(size = 10))
+centerstone_rate_graph
 ############
-  
-ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
-  geom_line()+
-  labs(title="Suicides by Year")+
-  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
-  xlab("Date of Death")+
-  ylab("Count of Suicides")+
-  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
+
+#########
+cdc_rate_graph = ggplot(cdc_rate, aes(x = year, y = CDC_rate))+
+  geom_line()+  
+  labs(title="CDC Age Adjusted Suicide (Per 100,000 Clients) Rate 2009 to 2017")+
+    scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
+  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
+  xlab("Year")+
+  ylab("CDC Age Adjusted Suicide Rate")+
+  ylim(min = 7, max = 15)+ 
+  theme(axis.title.y= element_text(size = 10))
+
+library(gridExtra)
+grid.arrange(cdc_rate_graph, centerstone_rate_graph, nrow = 2)
 
 ```
-
-### 
-zero_suicide_dat_agg$death_date
-
-zero_suicide_dat_agg$death_date[144] 
-
-library(scales)
-min <- as.Date("2002-1-1")
-max <- as.Date("2019-1-1")
-
-ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
-  geom_line()+
-  labs(title="Suicides by Year")+
-  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
-  xlab("Date of Death")+
-  ylab("Count of Suicides")+
-  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
-
-
-
-
