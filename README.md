@@ -21,6 +21,10 @@ Check descriptives make sure nothing is out of bounds
 ```{r}
 setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/Matt'sData")
 zero_suicide = read.csv("zero_suicide.csv", header= TRUE, na.strings = c("multiple ???", "NA"))
+zero_suicide_denom = read.csv("zero_suicide_denom.csv", header = TRUE)
+
+zero_suicide_denom
+
 ```
 Descriptive statistics
 Which variables do we want to look at
@@ -236,12 +240,14 @@ zeros$death_date = ymd(zeros$death_date)
 zero_suicide_dat_agg = rbind(zero_suicide_dat_agg, zeros)
 zero_suicide_dat_agg = zero_suicide_dat_agg[order(zero_suicide_dat_agg$death_date),]
 zero_suicide_dat_agg
-write.csv(zero_suicide_dat_agg, "zero_suicide_dat_agg.csv", row.names = FALSE)
+zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
+
 ```
 Plots and descriptives
 ```{r}
-zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
+
 library(descr)
+
 
 ## Mean comparison
 compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
@@ -271,6 +277,12 @@ ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
 ```
 Develop the model with poisson and neg comparison test for residuals afterward 
 ```{r}
+
+### Add time varible to test slope
+zero_suicide_dat_agg$time = 1:dim(zero_suicide_dat_agg)[1]
+
+
+#### Just mean or level change
 model_p = glm(suicide ~ zero_suicide, family = "poisson", data = zero_suicide_dat_agg)
 summary(model_p)
 library(lmtest)
@@ -292,6 +304,21 @@ AIC(model_nb)
 BIC(model_p)
 BIC(model_nb)
 pchisq(2 * (logLik(model_p) - logLik(model_nb)), df = 1, lower.tail = FALSE)
+
+### Slope change
+model_p_time = glm(suicide ~ zero_suicide*time, family = "poisson", data = zero_suicide_dat_agg)
+summary(model_p_time)
+library(lmtest)
+library(sandwich)
+
+results_robust = coeftest(model_p_time, vcov = sandwich)
+results_robust
+exp(results_robust[,1:2])
+con_robust =  coefci(model_p_time, vcov = sandwich)
+con_robust
+exp(con_robust[2,1:2])
+
+
 
 ```
 Review final model looks good.
@@ -343,6 +370,146 @@ trend_station_long[[i]] = summary(trend_station_long[[i]])
 }
 trend_station_long
 ```
+#############################################
+Rate analysis
+#############################################
+
+###############
+Rate analysis
+Data cleaning
+
+#####
+Notes
+
+Need to get the date formated correctly
+Need to line up the dates with the data sets.
+Drop first three months no padding 
+```{r}
+zero_suicide_denom
+
+zero_suicide_denom$Period = paste0(zero_suicide_denom$Period, "-01")
+zero_suicide_denom$Period = ymd(zero_suicide_denom$Period)
+### Get rid of first three months so padding
+zero_suicide_denom = subset(zero_suicide_denom, Period > "2009-03-01" & Period < "2019-05-01")
+zero_suicide_denom
+
+
+zero_suicide_rate = subset(zero_suicide_dat_agg, death_date > "2009-03-01")
+zero_suicide_rate
+
+### Check that dates are in order
+zero_suicide_denom$Period == zero_suicide_rate$death_date
+
+zero_suicide_rate$client_count = zero_suicide_denom$ClientCount
+zero_suicide_rate$client_count == zero_suicide_denom$ClientCount
+```
+#############
+Rate analysis
+Analysis
+#############
+```{r}
+head(zero_suicide_rate)
+### Add time
+zero_suicide_rate$time = 1:dim(zero_suicide_rate)[1]
+
+model_p_rate = glm(suicide ~ zero_suicide + offset(log(client_count)), family = "poisson", data = zero_suicide_rate)
+summary(model_p_rate)
+library(lmtest)
+library(sandwich)
+
+results_robust = coeftest(model_p_rate, vcov = sandwich)
+results_robust
+exp(results_robust[,1:2])
+con_robust =  coefci(model_p_rate, vcov = sandwich)
+con_robust
+exp(con_robust[2,1:2])
+
+library(MASS)
+model_nb = glm.nb(suicide ~ zero_suicide + offset(log(client_count)), data = zero_suicide_rate)
+summary(model_nb)
+AIC(model_p_rate)
+AIC(model_nb)
+BIC(model_p_rate)
+BIC(model_nb)
+pchisq(2 * (logLik(model_p_rate) - logLik(model_nb)), df = 1, lower.tail = FALSE)
+
+
+#### Review slop change
+### Slope change
+model_p_rate_time = glm(suicide ~ zero_suicide*time + offset(log(client_count)), family = "poisson", data = zero_suicide_rate)
+summary(model_p_rate_time)
+library(lmtest)
+library(sandwich)
+
+results_robust = coeftest(model_p_rate_time, vcov = sandwich)
+results_robust
+exp(results_robust[,1:2])
+con_robust =  coefci(model_p_rate_time, vcov = sandwich)
+con_robust
+exp(con_robust[2,1:2])
+
+```
+################
+Rate analysis
+Assumptions
+################
+```{r}
+residModelH = residuals(model_p_rate)
+hist(residModelH)
+plot(zero_suicide_rate$death_date, residModelH)
+range(predict.glm(model_p_rate))
+range(exp(residModelH))
+acf(residModelH)
+pacf(residModelH)
+
+### Use other test to test whether the data is stationary
+library(urca)
+lag_n_short = c(2:10)
+mean_station_short = list()
+for(i in 1:length(lag_n_short)){
+  mean_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+                                      = lag_n_short[[i]])
+  mean_station_short[[i]] = summary(mean_station_short[[i]])
+}
+mean_station_short
+
+lag_n_long = c(11:20)
+mean_station_long = list()
+for(i in 1:length(lag_n_long)){
+  mean_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+                                     = lag_n_long[[i]])
+  mean_station_long[[i]] = summary(mean_station_long[[i]])
+}
+mean_station_long
+
+
+lag_n_short = c(2:10)
+trend_station_short = list()
+for(i in 1:length(lag_n_short)){
+  trend_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+                                       = lag_n_short[[i]])
+  trend_station_short[[i]] = summary(trend_station_short[[i]])
+}
+trend_station_short
+
+lag_n_long = c(11:20)
+trend_station_long = list()
+for(i in 1:length(lag_n_long)){
+  trend_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+                                      = lag_n_long[[i]])
+  trend_station_long[[i]] = summary(trend_station_long[[i]])
+}
+trend_station_long
+
+```
+
+
+
+###########################
+CDC Comparison analysis
+###########################
+
+
 Need number of deaths per year per age group and total number of people in each age group.  Then you can follow the formula in the excel sheet.
 Need total deaths by age group per year
 
