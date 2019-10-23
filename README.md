@@ -677,3 +677,27 @@ library(gridExtra)
 grid.arrange(cdc_rate_graph, centerstone_rate_graph, nrow = 2)
 
 ```
+Get some p_changes
+```{r}
+centerstone_cdc_suicides_rate
+library(quantmod)
+p_change_centerstone =  Delt(centerstone_cdc_suicides_rate$age_adjust_rate, type = c("arithmetic"))
+colnames(p_change_centerstone) = "p_change_centerstone"
+p_change_centerstone = data.frame(p_change_centerstone)
+p_change_centerstone_dat =  data.frame(year = centerstone_cdc_suicides_rate$death_date, p_change_centerstone)
+
+p_change_centerstone_dat
+mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
+sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
+wilcox.test(p_change_centerstone_dat$p_change_centerstone)
+
+#### Now do cdc
+p_change_cdc = Delt(cdc_rate$CDC_rate, type = "arithmetic")
+colnames(p_change_cdc) = "p_change_cdc"
+p_change_cdc = data.frame(p_change_cdc)
+p_change_cdc_dat = data.frame(year = cdc_rate$year, p_change_cdc)
+mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
+
+wilcox.test(p_change_cdc$p_change_cdc)
+
+```
