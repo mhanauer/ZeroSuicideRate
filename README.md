@@ -15,6 +15,7 @@ library(prettyR)
 library(rstanarm)
 library(MissMech)
 library(lubridate)
+library(prettyR)
 ```
 Load in data. Need to check variables of interest are doing ok.
 Check descriptives make sure nothing is out of bounds
@@ -85,6 +86,14 @@ zero_suicide_dat$num_prior_hospital = as.numeric(zero_suicide_dat$num_prior_hosp
 
 #### Make total number of kept services numeric
 zero_suicide_dat$total_kept_services = as.numeric(zero_suicide_dat$total_kept_services)
+
+### Get rid of death dates that are NA, make them something else then subset
+sum(is.na(zero_suicide_dat$death_date))
+###
+zero_suicide_dat$death_date[is.na(zero_suicide_dat$death_date)] = "2020-01-01"
+range(zero_suicide_dat$death_date)
+zero_suicide_dat = subset(zero_suicide_dat, death_date < "2020-01-01")
+sum(is.na(zero_suicide_dat$death_date))
 ```
 Questions to answer
 Raw number of people who died by suicide while on the pathway at the time of death: 13
@@ -153,10 +162,12 @@ Particpant character
 
 
 ```{r}
+#### Only looking at 2009 and beyond, because that is all the rate data that we have
+zero_suicide_dat = subset(zero_suicide_dat, death_date >= "2009-04-01")
 describe.factor(zero_suicide_dat$death_date)
 range(zero_suicide_dat$death_date, na.rm = TRUE)
 describe.factor(zero_suicide_dat$gender)
-describe.factor(zero_suicide_dat$event)
+#describe.factor(zero_suicide_dat$event)
 describe.factor(zero_suicide_dat$cssrs_date)
 range(zero_suicide_dat$current_path_enroll_date, na.rm = TRUE)
 range(zero_suicide_dat$current_path_disenroll_date, na.rm = TRUE)
@@ -190,8 +201,14 @@ Figure out how to aggregate with full date (need to aggregate by month not day).
 
 Descriptives for grant and paper (need to get a few more cleaned before final)
 ```{r}
+zero_suicide_dat
 ### Number of deaths
 dim(zero_suicide_dat)[1]
+
+#### Create time varable
+zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01", 1, 0)
+#### Number of deaths before and after
+describe.factor(zero_suicide_dat$zero_suicide)
 ## Time range for deaths
 range(zero_suicide_dat$death_date, na.rm = TRUE)
 describe.factor(zero_suicide_dat$gender)
@@ -203,11 +220,14 @@ sd(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
 ### Average number of kept appointments get clarification
 mean(zero_suicide_dat$total_kept_services, na.rm =TRUE)
 sd(zero_suicide_dat$total_kept_services, na.rm =TRUE)
-
+#### Death during implementation
 
 ### Average age at death
 mean(zero_suicide_dat$age_at_death, na.rm = TRUE)
 sd(zero_suicide_dat$age_at_death, na.rm = TRUE)
+
+
+
 ```
 ######################
 Count analysis
@@ -222,11 +242,15 @@ So you have to get the zeros, but R doesn't know when there is a zero, because i
 
 ```{r}
 zero_suicide_dat_agg = zero_suicide_dat
+
 ### Rounds down to the month so it is in the right month
 zero_suicide_dat_agg$death_date = floor_date(zero_suicide_dat_agg$death_date, unit = "months")
 zero_suicide_dat_agg$suicide = rep(1, dim(zero_suicide_dat_agg)[1])
-
+describe.factor(zero_suicide_dat_agg$suicide)
 library(dplyr)
+
+########## Just get April 2009 and forward to be consisent with the rate
+range(zero_suicide_dat_agg$death_date, na.rm = TRUE)
 
 zero_suicide_dat_agg = data.frame(death_date = zero_suicide_dat_agg$death_date, suicide = zero_suicide_dat_agg$suicide)
 head(zero_suicide_dat_agg)
@@ -235,22 +259,42 @@ zero_suicide_dat_agg = zero_suicide_dat_agg %>%
   group_by(death_date) %>%
   summarise_all(funs(sum))
 
-sum(is.na(zero_suicide_dat_agg))
-### Four death dates that we could not locate
-zero_suicide_dat_agg = na.omit(zero_suicide_dat_agg)
-## Get rid of first person outlier in 2001
-zero_suicide_dat_agg = zero_suicide_dat_agg[-c(1),]
 zero_suicide_dat_agg
 
-zeros = data.frame(death_date = c("2002-09-01","2002-12-01","2003-03-01", "2003-04-01", "2003-12-01", "2004-1-01", "2004-3-01", "2004-07-01", "2004-10-01", "2005-01-01","2005-04-01", "2005-05-01", "2005-07-01", "2005-09-01", "2005-10-01", "2005-12-01", "2006-03-01", "2006-05-01", "2006-09-01", "2007-05-01", "2007-06-01", "2007-07-01", "2007-08-01", "2007-09-01", "2007-11-01", "2007-12-01", "2008-02-01", "2008-03-01", "2008-05-01", "2008-10-01", "2008-06-01", "2009-06-01", "2010-01-01", "2010-04-01", "2010-05-01", "2010-07-01", "2010-12-01", "2011-02-01", "2011-03-01", "2011-05-01", "2011-07-01", "2011-08-01", "2011-09-01", "2011-10-01", "2011-11-01", "2012-12-01", "2012-03-01", "2012-07-01", "2012-11-01", "2013-03-01", "2013-04-01", "2013-08-01", "2013-10-01", "2014-06-01", "2014-07-01", "2014-08-01", "2014-10-01", "2014-12-01", "2015-02-01", "2015-04-01", "2015-08-01", "2015-09-01", "2016-03-01", "2016-04-01", "2016-06-01", "2016-07-01", "2016-11-01", "2016-12-01", "2017-02-01", "2017-06-01", "2017-11-01", "2018-06-01", "2018-10-01", "2018-11-01", "2018-12-01", "2019-01-01"))
+zeros = data.frame(death_date = c("2009-06-01", "2010-01-01", "2010-04-01", "2010-05-01", "2010-07-01", "2010-12-01", "2011-02-01", "2011-03-01", "2011-05-01", "2011-07-01", "2011-08-01", "2011-09-01", "2011-10-01", "2011-11-01", "2012-12-01", "2012-03-01", "2012-07-01", "2012-11-01", "2013-03-01", "2013-04-01", "2013-08-01", "2013-10-01", "2014-06-01", "2014-07-01", "2014-08-01", "2014-10-01", "2014-12-01", "2015-02-01", "2015-04-01", "2015-08-01", "2015-09-01", "2016-03-01", "2016-04-01", "2016-06-01", "2016-07-01", "2016-11-01", "2016-12-01", "2017-02-01", "2017-06-01", "2017-11-01", "2018-06-01", "2018-10-01", "2018-11-01", "2018-12-01", "2019-01-01"))
 zeros = data.frame(zeros, suicide = rep(0, dim(zeros)[1]))
 zeros$death_date = ymd(zeros$death_date)
 zero_suicide_dat_agg = rbind(zero_suicide_dat_agg, zeros)
 zero_suicide_dat_agg = zero_suicide_dat_agg[order(zero_suicide_dat_agg$death_date),]
 zero_suicide_dat_agg
+zero_suicide_dat_agg = subset(zero_suicide_dat_agg, death_date >= "2009-04-01")
 zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
+zero_suicide_dat_agg
+### Match total number of suicides
+sum(zero_suicide_dat_agg$suicide)
+
+
+
 
 ```
+####################
+Descrip Zero Suicide
+#####################
+```{r}
+########### Difference in mean number of suicides pre and post intervention
+library(descr)
+compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
+
+############### Range of suicides
+#### Range of deaths number of deaths before and after
+range_before = subset(zero_suicide_dat_agg, zero_suicide == 0) 
+range_after = subset(zero_suicide_dat_agg, zero_suicide == 1) 
+
+range(range_before$suicide)
+range(range_after$suicide)
+```
+
+
 ###############
 Count Analysis
 Plots
@@ -259,10 +303,8 @@ Plots
 
 library(descr)
 ### Add time varible to test slope
+range(zero_suicide_dat_agg$death_date)
 
-
-## Mean comparison
-compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
 
 ##Number of people who died while zero suicide was fully implemented
 zero_suicide_dat_agg %>%
@@ -276,16 +318,16 @@ zero_suicide_dat_agg$death_date
 ### add time varible
 zero_suicide_dat_agg$time = 1:dim(zero_suicide_dat_agg)[1]
 
-zero_suicide_dat_agg$death_date[144] 
+zero_suicide_dat_agg$death_date[58] 
 
 library(scales)
-min <- as.Date("2002-1-1")
+min <- as.Date("2009-4-1")
 max <- as.Date("2019-4-1")
 
 ggplot(zero_suicide_dat_agg, aes(x = death_date, y = suicide))+
   geom_line()+
-  labs(title="Suicides by year")+
-  geom_vline(xintercept = zero_suicide_dat_agg$death_date[144], colour="red")+
+  labs(title="Figure 1 suicides by year")+
+  geom_vline(xintercept = zero_suicide_dat_agg$death_date[58] , colour="red")+
   xlab("Date of death")+
   ylab("Count of suicides")+
   scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
@@ -404,11 +446,12 @@ zero_suicide_denom$Period = ymd(zero_suicide_denom$Period)
 zero_suicide_denom = subset(zero_suicide_denom, Period > "2009-03-01" & Period < "2019-05-01")
 zero_suicide_denom
 
+zero_suicide_rate = zero_suicide_dat_agg
 ### Check that dates are in order
 zero_suicide_rate$client_count = zero_suicide_denom$ClientCount
 zero_suicide_denom$Period == zero_suicide_rate$death_date
-zero_suicide_rate
-
+dim(zero_suicide_rate)
+dim(zero_suicide_dat_agg)
 ```
 #############
 Rate analysis
@@ -449,11 +492,11 @@ library(lmtest)
 library(sandwich)
 
 results_robust = coeftest(model_p_rate_time, vcov = sandwich)
-results_robust
-exp(results_robust[,1:2])
+round(results_robust,3)
+round(exp(results_robust[,1:2]),3)
 con_robust =  coefci(model_p_rate_time, vcov = sandwich)
 con_robust
-exp(con_robust[2,1:2])
+round(exp(con_robust[,1:2]),3)
 
 ```
 ################
@@ -582,9 +625,10 @@ describe.factor(zero_suicide_cdc$age_at_death_cat)
 #2016	15-24
 #2016	65-74
 #2017	65-74
+#2010-01-01	65-74
 
 ### Generate data set with missing zero dates and then rbind and order next
-missing_zeros = data.frame(death_date = c("2010-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01","2011-01-01","2012-01-01", "2013-01-01", "2013-01-01", "2014-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2016-01-01", "2017-01-01"), age_at_death_cat = c("15-24", "55-64", "65-74", "45-54", "55-64", "65-74", "65-74", "15-24", "65-74", "55-64", "65-74", "65-74", "15-24", "65-74", "65-74"), death_per_year_per_age_cat = rep(0, 15))
+missing_zeros = data.frame(death_date = c("2009-01-01", "2009-01-01","2010-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01","2011-01-01","2012-01-01", "2013-01-01", "2013-01-01", "2014-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2016-01-01", "2017-01-01"), age_at_death_cat = c("65-74","15-24", "55-64", "65-74", "45-54", "55-64", "65-74", "65-74", "15-24", "65-74", "55-64", "65-74", "55-64", "65-74", "15-24", "65-74", "65-74"), death_per_year_per_age_cat = rep(0, 17))
 
 missing_zeros$death_date = ymd(missing_zeros$death_date)
 
@@ -652,12 +696,12 @@ Now plot the CDC rate
 centerstone_cdc_suicides_rate$death_date = ymd(centerstone_cdc_suicides_rate$death_date)
 centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
   geom_line()+  
-  labs(title="Centerstone Age Adjusted Suicide (Per 100,000 Clients) Rate 2009 to 2017")+
+  labs(title="Figure 2 Centerstone age adjusted suicide (per 100,000 clients) rate 2009 to 2017")+
     scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
   geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
   xlab("Year")+
-  ylab("Centerstone Age Adjusted Suicide Rate")+
-  theme(axis.title.y= element_text(size = 10))
+  ylab("Centerstone age adjusted suicide rate")+
+  theme(axis.title.y= element_text(size = 8))
 centerstone_rate_graph
 ############
 
@@ -665,18 +709,22 @@ centerstone_rate_graph
 
 cdc_rate_graph = ggplot(cdc_rate, aes(x = year, y = CDC_rate))+
   geom_line()+  
-  labs(title="CDC Age Adjusted Suicide (Per 100,000 Clients) Rate 2009 to 2017")+
+  labs(title="Figure 3 CDC age adjusted suicide (per 100,000 clients) rate 2009 to 2017")+
     scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
   geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
   xlab("Year")+
-  ylab("CDC Age Adjusted Suicide Rate")+
+  ylab("CDC age adjusted suicide rate")+
   ylim(min = 8, max = 15)+ 
-  theme(axis.title.y= element_text(size = 10))
+  theme(axis.title.y= element_text(size = 8))
 
 library(gridExtra)
-grid.arrange(cdc_rate_graph, centerstone_rate_graph, nrow = 2)
+grid.arrange(centerstone_rate_graph, cdc_rate_graph, nrow = 2)
 
 ```
+####################
+CDC Compare analysis
+Compare rate of change
+######################
 Get some p_changes
 ```{r}
 centerstone_cdc_suicides_rate
@@ -691,6 +739,9 @@ mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
 sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
 wilcox.test(p_change_centerstone_dat$p_change_centerstone)
 
+#### Data are independent
+acf(na.omit(p_change_centerstone_dat$p_change_centerstone))
+pacf(na.omit(p_change_centerstone_dat$p_change_centerstone))
 #### Now do cdc
 p_change_cdc = Delt(cdc_rate$CDC_rate, type = "arithmetic")
 colnames(p_change_cdc) = "p_change_cdc"
@@ -699,5 +750,19 @@ p_change_cdc_dat = data.frame(year = cdc_rate$year, p_change_cdc)
 mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
 
 wilcox.test(p_change_cdc$p_change_cdc)
+
+### Data are independent
+acf(na.omit(p_change_cdc$p_change_cdc))
+pacf(na.omit(p_change_cdc$p_change_cdc))
+##### Now compare Centerstone to CDC
+wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change_cdc)
+p_change_centerstone_dat
+
+
+```
+#############################
+Percentage change for first year
+#############################
+```{r}
 
 ```
