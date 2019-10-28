@@ -434,6 +434,8 @@ Analysis
 #############
 ```{r}
 head(zero_suicide_rate)
+# N for analysis
+dim(zero_suicide_rate)
 ### Add time
 zero_suicide_rate$time = 1:dim(zero_suicide_rate)[1]
 
@@ -617,6 +619,7 @@ centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
 centerstone_cdc_suicides$death_date == centerstone_cdc_suicides$death_date
 centerstone_cdc_suicides$age_group = NULL
 ### Now we need to divide by the number by the pop multiple by 100,000
+centerstone_cdc_suicides_1000 = centerstone_cdc_suicides
 centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$death_per_year_per_age_cat/centerstone_cdc_suicides$pop)*100000
 centerstone_cdc_suicides
 
@@ -679,7 +682,7 @@ cdc_rate_graph = ggplot(cdc_rate, aes(x = year, y = CDC_rate))+
   geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
   xlab("Year")+
   ylab("CDC age adjusted suicide rate")+
-  ylim(min = 8, max = 15)+ 
+  ylim(min = 8, max = 12)+ 
   theme(axis.title.y= element_text(size = 8))
 
 library(gridExtra)
@@ -703,7 +706,6 @@ p_change_centerstone_dat
 mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
 sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
 wilcox.test(p_change_centerstone_dat$p_change_centerstone)
-
 #### Data are independent
 acf(na.omit(p_change_centerstone_dat$p_change_centerstone))
 pacf(na.omit(p_change_centerstone_dat$p_change_centerstone))
@@ -713,7 +715,7 @@ colnames(p_change_cdc) = "p_change_cdc"
 p_change_cdc = data.frame(p_change_cdc)
 p_change_cdc_dat = data.frame(year = cdc_rate$year, p_change_cdc)
 mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
-
+sd(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
 wilcox.test(p_change_cdc$p_change_cdc)
 
 ### Data are independent
@@ -721,13 +723,7 @@ acf(na.omit(p_change_cdc$p_change_cdc))
 pacf(na.omit(p_change_cdc$p_change_cdc))
 ##### Now compare Centerstone to CDC
 wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change_cdc)
-p_change_centerstone_dat
 
 
 ```
-#############################
-Percentage change for first year
-#############################
-```{r}
-
-```
+Look at the 
