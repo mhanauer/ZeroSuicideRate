@@ -94,13 +94,14 @@ zero_suicide_dat$death_date[is.na(zero_suicide_dat$death_date)] = "2020-01-01"
 range(zero_suicide_dat$death_date)
 zero_suicide_dat = subset(zero_suicide_dat, death_date < "2020-01-01")
 sum(is.na(zero_suicide_dat$death_date))
+range(zero_suicide_dat$death_date)
 ```
 Questions to answer
-Raw number of people who died by suicide while on the pathway at the time of death: 13
+1. Raw number of people who died by suicide while on the pathway at the time of death: 13
 
-Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death): 16
+2. Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death): 16
 
-Raw number of people who died by suicide who had never been on the pathway at the time of death: 67
+3. Raw number of people who died by suicide who had never been on the pathway at the time of death: 67
 ```{r}
 zero_suicide_questions = data.frame(path_enroll_death = zero_suicide_dat$path_enroll_death, current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date)
 head(zero_suicide_questions)
@@ -128,7 +129,6 @@ dim(zero_suicide_q1)[1]
 zero_suicide_q2 = 
 zero_suicide_q2 = subset(zero_suicide_questions, current_path_disenroll_date != "2020-01-01")
 #### Now we need to find if the date for the death is after the disenrollment date make a new variable
-sum(is.na(zero_suicide_q2))
 zero_suicide_q2$death_after_diss = ifelse(zero_suicide_q2$death_date-zero_suicide_q2$current_path_disenroll_date > 1, 1,0)
 head(zero_suicide_q2)
 
@@ -205,7 +205,7 @@ zero_suicide_dat
 ### Number of deaths
 dim(zero_suicide_dat)[1]
 
-#### Create time varable
+#### Create intervention varable
 zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01", 1, 0)
 #### Number of deaths before and after
 describe.factor(zero_suicide_dat$zero_suicide)
@@ -226,8 +226,6 @@ sd(zero_suicide_dat$total_kept_services, na.rm =TRUE)
 mean(zero_suicide_dat$age_at_death, na.rm = TRUE)
 sd(zero_suicide_dat$age_at_death, na.rm = TRUE)
 
-
-
 ```
 ######################
 Count analysis
@@ -242,7 +240,7 @@ So you have to get the zeros, but R doesn't know when there is a zero, because i
 
 ```{r}
 zero_suicide_dat_agg = zero_suicide_dat
-
+dim(zero_suicide_dat_agg)
 ### Rounds down to the month so it is in the right month
 zero_suicide_dat_agg$death_date = floor_date(zero_suicide_dat_agg$death_date, unit = "months")
 zero_suicide_dat_agg$suicide = rep(1, dim(zero_suicide_dat_agg)[1])
@@ -267,15 +265,10 @@ zeros$death_date = ymd(zeros$death_date)
 zero_suicide_dat_agg = rbind(zero_suicide_dat_agg, zeros)
 zero_suicide_dat_agg = zero_suicide_dat_agg[order(zero_suicide_dat_agg$death_date),]
 zero_suicide_dat_agg
-zero_suicide_dat_agg = subset(zero_suicide_dat_agg, death_date >= "2009-04-01")
 zero_suicide_dat_agg$zero_suicide = ifelse(zero_suicide_dat_agg$death_date < "2014-01-01", 0,1)
 zero_suicide_dat_agg
 ### Match total number of suicides
 sum(zero_suicide_dat_agg$suicide)
-
-
-
-
 ```
 ####################
 Descrip Zero Suicide
@@ -284,6 +277,13 @@ Descrip Zero Suicide
 ########### Difference in mean number of suicides pre and post intervention
 library(descr)
 compmeans(zero_suicide_dat_agg$suicide, zero_suicide_dat_agg$zero_suicide)
+
+###### Number of suicides per and post
+pre_int = subset(zero_suicide_dat_agg, zero_suicide == 0)
+post_int = subset(zero_suicide_dat_agg, zero_suicide == 1)
+
+sum(pre_int$suicide)
+sum(post_int$suicide)
 
 ############### Range of suicides
 #### Range of deaths number of deaths before and after
@@ -305,15 +305,6 @@ library(descr)
 ### Add time varible to test slope
 range(zero_suicide_dat_agg$death_date)
 
-
-##Number of people who died while zero suicide was fully implemented
-zero_suicide_dat_agg %>%
-  group_by(zero_suicide) %>%
-  summarise(suicide_by_treat = sum(suicide))
-library(ggplot2)
-
-### 
-zero_suicide_dat_agg$death_date
 
 ### add time varible
 zero_suicide_dat_agg$time = 1:dim(zero_suicide_dat_agg)[1]
@@ -340,30 +331,7 @@ Notes
 
 Develop the model with poisson and neg comparison test for residuals afterward 
 ```{r}
-#### Just mean or level change
-model_p = glm(suicide ~ zero_suicide, family = "poisson", data = zero_suicide_dat_agg)
-summary(model_p)
-library(lmtest)
-library(sandwich)
-
-results_robust = coeftest(model_p, vcov = sandwich)
-results_robust
-exp(results_robust[,1:2])
-con_robust =  coefci(model_p, vcov = sandwich)
-con_robust
-exp(con_robust[2,1:2])
-
-library(MASS)
-
-model_nb = glm.nb(suicide ~ zero_suicide, data = zero_suicide_dat_agg)
-summary(model_nb)
-AIC(model_p)
-AIC(model_nb)
-BIC(model_p)
-BIC(model_nb)
-pchisq(2 * (logLik(model_p) - logLik(model_nb)), df = 1, lower.tail = FALSE)
-
-### Slope change
+### Level and Slope change
 model_p_time = glm(suicide ~ zero_suicide*time, family = "poisson", data = zero_suicide_dat_agg)
 summary(model_p_time)
 library(lmtest)
@@ -376,16 +344,22 @@ con_robust =  coefci(model_p_time, vcov = sandwich)
 con_robust
 exp(con_robust[2,1:2])
 
+########### Comparing the nb to the p
+model_nb_time = glm.nb(suicide ~ zero_suicide*time, data = zero_suicide_dat_agg)
+summary(model_nb_time)
+AIC(model_p_time)
+AIC(model_nb_time)
+BIC(model_p_time)
+BIC(model_nb_time)
+pchisq(2 * (logLik(model_p_time) - logLik(model_nb_time)), df = 1, lower.tail = FALSE)
 
 
 ```
 Review final model looks good.
 ```{r}
-residModelH = residuals(model_p)
+residModelH = residuals(model_p_time)
 hist(residModelH)
 plot(zero_suicide_dat_agg$death_date, residModelH)
-range(predict.glm(model_p))
-range(exp(residModelH))
 acf(residModelH)
 pacf(residModelH)
 
@@ -403,7 +377,7 @@ mean_station_short
 lag_n_long = c(11:20)
 mean_station_long = list()
 for(i in 1:length(lag_n_long)){
-mean_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+mean_station_long[[i]]  =  ur.kpss(residModelH, type="mu", use.lag
  = lag_n_long[[i]])
 mean_station_long[[i]] = summary(mean_station_long[[i]])
 }
@@ -413,7 +387,7 @@ mean_station_long
 lag_n_short = c(2:10)
 trend_station_short = list()
 for(i in 1:length(lag_n_short)){
-trend_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+trend_station_short[[i]]  =  ur.kpss(residModelH, type="mu", use.lag
  = lag_n_short[[i]])
 trend_station_short[[i]] = summary(trend_station_short[[i]])
 }
@@ -439,6 +413,7 @@ Need to line up the dates with the data sets.
 Drop first three months no padding 
 ```{r}
 zero_suicide_denom
+zero_suicide_dat_agg
 
 zero_suicide_denom$Period = paste0(zero_suicide_denom$Period, "-01")
 zero_suicide_denom$Period = ymd(zero_suicide_denom$Period)
@@ -462,28 +437,6 @@ head(zero_suicide_rate)
 ### Add time
 zero_suicide_rate$time = 1:dim(zero_suicide_rate)[1]
 
-model_p_rate = glm(suicide ~ zero_suicide + offset(log(client_count)), family = "poisson", data = zero_suicide_rate)
-summary(model_p_rate)
-library(lmtest)
-library(sandwich)
-
-results_robust = coeftest(model_p_rate, vcov = sandwich)
-results_robust
-exp(results_robust[,1:2])
-con_robust =  coefci(model_p_rate, vcov = sandwich)
-con_robust
-exp(con_robust[2,1:2])
-
-library(MASS)
-model_nb = glm.nb(suicide ~ zero_suicide + offset(log(client_count)), data = zero_suicide_rate)
-summary(model_nb)
-AIC(model_p_rate)
-AIC(model_nb)
-BIC(model_p_rate)
-BIC(model_nb)
-pchisq(2 * (logLik(model_p_rate) - logLik(model_nb)), df = 1, lower.tail = FALSE)
-
-
 #### Review slop change
 ### Slope change
 model_p_rate_time = glm(suicide ~ zero_suicide*time + offset(log(client_count)), family = "poisson", data = zero_suicide_rate)
@@ -498,16 +451,25 @@ con_robust =  coefci(model_p_rate_time, vcov = sandwich)
 con_robust
 round(exp(con_robust[,1:2]),3)
 
+
+library(MASS)
+model_nb_time_rate = glm.nb(suicide ~ zero_suicide*time + offset(log(client_count)), data = zero_suicide_rate)
+summary(model_nb_time_rate)
+AIC(model_p_rate_time)
+AIC(model_nb_time_rate)
+BIC(model_p_rate_time)
+BIC(model_nb_time_rate)
+pchisq(2 * (logLik(model_p_rate_time) - logLik(model_nb_time_rate)), df = 1, lower.tail = FALSE)
+
 ```
 ################
 Rate analysis
 Assumptions
 ################
 ```{r}
-residModelH = residuals(model_p_rate)
+residModelH = residuals(model_p_rate_time)
 hist(residModelH)
 plot(zero_suicide_rate$death_date, residModelH)
-range(predict.glm(model_p_rate))
 range(exp(residModelH))
 acf(residModelH)
 pacf(residModelH)
@@ -554,6 +516,7 @@ trend_station_long
 ```
 ###########################
 CDC Comparison analysis
+Data cleaning
 ###########################
 
 
@@ -574,18 +537,18 @@ zero_suicide_cdc = data.frame(death_date = zero_suicide_dat$death_date, suicide 
 
 zero_suicide_cdc$age_at_death_cat = ifelse(zero_suicide_cdc$age_at_death <= 14, "5-14", ifelse(zero_suicide_cdc$age_at_death <= 24, "15-24", ifelse(zero_suicide_cdc$age_at_death <= 34, "25-34", ifelse(zero_suicide_cdc$age_at_death <= 44, "35-44", ifelse(zero_suicide_cdc$age_at_death <= 54, "45-54", ifelse(zero_suicide_cdc$age_at_death <= 64, "55-64", ifelse(zero_suicide_cdc$age_at_death <= 74, "65-74", "75+")))))))
 
+
 ### Check that it worked
 zero_suicide_cdc
 describe.factor(zero_suicide_cdc$age_at_death_cat)
 
 zero_suicide_cdc$death_date = floor_date(zero_suicide_cdc$death_date, unit = "year")
 zero_suicide_cdc$death_date
-zero_suicide_cdc_complete = na.omit(zero_suicide_cdc)
-centerstone_cdc = zero_suicide_cdc_complete %>%
+centerstone_cdc_suicides = zero_suicide_cdc %>%
   group_by(death_date, age_at_death_cat) %>%
   summarise(death_per_year_per_age_cat = sum(suicide))
 
-centerstone_cdc
+centerstone_cdc_suicides
 ```
 #################
 CDC Analysis
@@ -600,15 +563,14 @@ head(cdc_rate)
 ### Centerstone totals population by age
 head(centerstone_cdc_pop)
 dim(centerstone_cdc_pop)
-### Centerstone total suicides
-centerstone_cdc_suicides = centerstone_cdc
-centerstone_cdc_suicides
+
 ### Subset set cdc to only dates in cdc rate
 centerstone_cdc_suicides = subset(centerstone_cdc_suicides, death_date > "2008-01-01" & death_date < "2018-01-01")
 range(zero_suicide_cdc$death_date, na.rm = TRUE)
 
+### Only three deaths at 14 just getting rid of them
 centerstone_cdc_suicides = subset(centerstone_cdc_suicides, age_at_death_cat != "5-14")
-describe.factor(zero_suicide_cdc$age_at_death_cat)
+describe.factor(centerstone_cdc_suicides$age_at_death_cat)
 #### Need to add in zero rows for those counts that are zero
 #2010	15-24
 #2010	55-64
