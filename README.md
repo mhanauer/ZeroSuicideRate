@@ -543,15 +543,17 @@ zero_suicide_cdc$age_at_death_cat = ifelse(zero_suicide_cdc$age_at_death <= 14, 
 ### Check that it worked
 zero_suicide_cdc
 describe.factor(zero_suicide_cdc$age_at_death_cat)
+zero_suicide_cdc = subset(zero_suicide_cdc, age_at_death_cat != "5-14")
+
 
 zero_suicide_cdc$death_date = floor_date(zero_suicide_cdc$death_date, unit = "year")
 zero_suicide_cdc$death_date
 centerstone_cdc_suicides = zero_suicide_cdc %>%
   group_by(death_date, age_at_death_cat) %>%
-  summarise(death_per_year_per_age_cat = sum(suicide))
+  summarise_if(is.numeric, sum)
 
+centerstone_cdc_suicides$age_at_death = NULL
 centerstone_cdc_suicides
-
 ```
 #################
 CDC Analysis
@@ -572,7 +574,6 @@ centerstone_cdc_suicides = subset(centerstone_cdc_suicides, death_date > "2008-0
 range(zero_suicide_cdc$death_date, na.rm = TRUE)
 
 ### Only three deaths at 14 just getting rid of them
-centerstone_cdc_suicides = subset(centerstone_cdc_suicides, age_at_death_cat != "5-14")
 describe.factor(centerstone_cdc_suicides$age_at_death_cat)
 #### Need to add in zero rows for those counts that are zero
 #2009 55-64
@@ -593,7 +594,7 @@ describe.factor(centerstone_cdc_suicides$age_at_death_cat)
 
 
 ### Generate data set with missing zero dates and then rbind and order next
-missing_zeros = data.frame(death_date = c("2009-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01", "2013-01-01", "2014-01-01", "2016-01-01"), age_at_death_cat = c("55-64","15-24", "55-64", "45-54", "55-64", "15-24", "55-64", "15-24"), death_per_year_per_age_cat = rep(0, 8))
+missing_zeros = data.frame(death_date = c("2009-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01", "2013-01-01", "2014-01-01", "2016-01-01"), age_at_death_cat = c("55-64","15-24", "55-64", "45-54", "55-64", "15-24", "55-64", "15-24"), suicide = rep(0, 8))
 
 missing_zeros$death_date = ymd(missing_zeros$death_date)
 
@@ -611,7 +612,7 @@ describe.factor(centerstone_cdc_suicides$age_group)
 
 
 centerstone_cdc_suicides = centerstone_cdc_suicides[order(centerstone_cdc_suicides$death_date, centerstone_cdc_suicides$age_group),]
-
+centerstone_cdc_suicides
 ##### Now grab population from pop data set
 centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
 ####
@@ -619,8 +620,7 @@ centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
 centerstone_cdc_suicides$death_date == centerstone_cdc_suicides$death_date
 centerstone_cdc_suicides$age_group = NULL
 ### Now we need to divide by the number by the pop multiple by 100,000
-centerstone_cdc_suicides_1000 = centerstone_cdc_suicides
-centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$death_per_year_per_age_cat/centerstone_cdc_suicides$pop)*100000
+centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$suicide/centerstone_cdc_suicides$pop)*100000
 centerstone_cdc_suicides
 
 ### Then we need to get the total pop for each year and rep that six times
@@ -638,9 +638,9 @@ centerstone_cdc_suicides$year_pop_centerstone = year_pop_centerstone
 head(centerstone_cdc_suicides)
 centerstone_cdc_suicides
 ### Now get age adjustment which means takes the standard population percentage of age groups times the crude rate then summed this is the standardization part
-stand_2000_age = c(0.139, 0.138, 0.163, 0.135, 0.087)
-sum(stand_2000_age)
-centerstone_cdc_suicides
+stand_2000_age = rep(c(0.139, 0.138, 0.163, 0.135, 0.087), 9)
+length(stand_2000_age)
+dim(centerstone_cdc_suicides)
 
 #### Now take the crude rate multiplied by the age adjust 
 centerstone_cdc_suicides$age_adjust_rate = centerstone_cdc_suicides$crude_rate*stand_2000_age
@@ -650,7 +650,6 @@ centerstone_cdc_suicides_rate = centerstone_cdc_suicides %>%
   group_by(death_date)%>%
   summarise_if(is.numeric, sum)
 centerstone_cdc_suicides_rate
-sum(centerstone_cdc_suicides[1:6,8])
 #### Clean up CDC rate
 cdc_rate = subset(cdc_rate, year > 2008)
 cdc_rate$year = paste0(cdc_rate$year,"-01", "-01")
