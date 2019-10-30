@@ -427,6 +427,7 @@ zero_suicide_rate$client_count = zero_suicide_denom$ClientCount
 zero_suicide_denom$Period == zero_suicide_rate$death_date
 dim(zero_suicide_rate)
 dim(zero_suicide_dat_agg)
+zero_suicide_rate
 ```
 #############
 Rate analysis
@@ -481,7 +482,7 @@ library(urca)
 lag_n_short = c(2:10)
 mean_station_short = list()
 for(i in 1:length(lag_n_short)){
-  mean_station_short[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+  mean_station_short[[i]]  =  ur.kpss(residModelH, type="mu", use.lag
                                       = lag_n_short[[i]])
   mean_station_short[[i]] = summary(mean_station_short[[i]])
 }
@@ -490,7 +491,7 @@ mean_station_short
 lag_n_long = c(11:20)
 mean_station_long = list()
 for(i in 1:length(lag_n_long)){
-  mean_station_long[[i]]  =  ur.kpss(residModelH, type="tau", use.lag
+  mean_station_long[[i]]  =  ur.kpss(residModelH, type="mu", use.lag
                                      = lag_n_long[[i]])
   mean_station_long[[i]] = summary(mean_station_long[[i]])
 }
@@ -623,19 +624,7 @@ centerstone_cdc_suicides$age_group = NULL
 centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$suicide/centerstone_cdc_suicides$pop)*100000
 centerstone_cdc_suicides
 
-### Then we need to get the total pop for each year and rep that six times
-year_pop_centerstone = centerstone_cdc_suicides %>%
-  group_by(death_date)%>%
-  summarise_if(is.numeric, sum)
-year_pop_centerstone = year_pop_centerstone$pop
-year_pop_centerstone = rep(year_pop_centerstone, each = 5)
-year_pop_centerstone
-length(year_pop_centerstone)
 
-### Now combine data with crude rates with the pop per year data. 
-
-centerstone_cdc_suicides$year_pop_centerstone = year_pop_centerstone
-head(centerstone_cdc_suicides)
 centerstone_cdc_suicides
 ### Now get age adjustment which means takes the standard population percentage of age groups times the crude rate then summed this is the standardization part
 stand_2000_age = rep(c(0.139, 0.138, 0.163, 0.135, 0.087), 9)
@@ -660,6 +649,7 @@ cdc_rate$year = ymd(cdc_rate$year)
 ```
 Now plot the CDC rate 
 ```{r}
+library(ggplot2)
 centerstone_cdc_suicides_rate$death_date = ymd(centerstone_cdc_suicides_rate$death_date)
 centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
   geom_line()+  
@@ -671,7 +661,6 @@ centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_dat
   theme(axis.title.y= element_text(size = 8))
 centerstone_rate_graph
 ############
-
 #########
 
 cdc_rate_graph = ggplot(cdc_rate, aes(x = year, y = CDC_rate))+
