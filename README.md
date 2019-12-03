@@ -621,7 +621,8 @@ centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
 centerstone_cdc_suicides$death_date == centerstone_cdc_suicides$death_date
 centerstone_cdc_suicides$age_group = NULL
 ### Now we need to divide by the number by the pop multiple by 100,000
-centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$suicide/centerstone_cdc_suicides$pop)*100000
+#### Changed to 1,000 for comparison
+centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$suicide/centerstone_cdc_suicides$pop)*1000
 centerstone_cdc_suicides
 
 
@@ -644,8 +645,13 @@ cdc_rate = subset(cdc_rate, year > 2008)
 cdc_rate$year = paste0(cdc_rate$year,"-01", "-01")
 cdc_rate$year = ymd(cdc_rate$year)
 
-### Doubles to get rid of 
-
+### CDC rate for 1,000
+setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/CDC")
+cdc_rate_1000 = read.csv("cdc_rate_1000.csv", header = TRUE)
+cdc_rate_1000 = subset(cdc_rate_1000, year > 2008)
+cdc_rate_1000$year = paste0(cdc_rate_1000$year,"-01", "-01")
+cdc_rate_1000$year = ymd(cdc_rate_1000$year)
+cdc_rate_1000
 ```
 Now plot the CDC rate 
 ```{r}
@@ -677,6 +683,37 @@ library(gridExtra)
 grid.arrange(centerstone_rate_graph, cdc_rate_graph, nrow = 2)
 
 ```
+CDC rate 1,000 
+```{r}
+library(ggplot2)
+centerstone_cdc_suicides_rate$death_date = ymd(centerstone_cdc_suicides_rate$death_date)
+centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
+  geom_line()+  
+  labs(title="Figure 2 Centerstone age adjusted suicide (per 1,000 clients) rate 2009 to 2017")+
+  scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
+  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
+  xlab("Year")+
+  ylab("Centerstone age adjusted suicide rate")+
+  theme(axis.title.y= element_text(size = 8))
+centerstone_rate_graph
+############
+#########
+
+cdc_rate_1000_graph = ggplot(cdc_rate_1000, aes(x = year, y = CDC_rate))+
+  geom_line()+  
+  labs(title="Figure 3 CDC age adjusted suicide (per 1,000 people) rate 2009 to 2017")+
+  scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
+  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
+  xlab("Year")+
+  ylab("CDC age adjusted suicide rate")+
+  #ylim(min = .09, max = .2)+ 
+  theme(axis.title.y= element_text(size = 8))
+
+library(gridExtra)
+grid.arrange(centerstone_rate_graph, cdc_rate_1000_graph, nrow = 2)
+
+```
+
 ####################
 CDC Compare analysis
 Compare rate of change
@@ -714,4 +751,47 @@ wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change
 
 
 ```
-Look at the 
+####################
+CDC Compare analysis 1,000
+Compare rate of change
+######################
+Get some p_changes
+```{r}
+centerstone_cdc_suicides_rate
+library(quantmod)
+p_change_centerstone =  Delt(centerstone_cdc_suicides_rate$age_adjust_rate, type = c("arithmetic"))
+colnames(p_change_centerstone) = "p_change_centerstone"
+p_change_centerstone = data.frame(p_change_centerstone)
+p_change_centerstone_dat =  data.frame(year = centerstone_cdc_suicides_rate$death_date, p_change_centerstone)
+
+p_change_centerstone_dat
+mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
+sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
+wilcox.test(p_change_centerstone_dat$p_change_centerstone)
+#### Data are independent
+acf(na.omit(p_change_centerstone_dat$p_change_centerstone))
+pacf(na.omit(p_change_centerstone_dat$p_change_centerstone))
+#### Now do cdc
+p_change_cdc = Delt(cdc_rate_1000$CDC_rate, type = "arithmetic")
+colnames(p_change_cdc) = "p_change_cdc"
+p_change_cdc = data.frame(p_change_cdc)
+p_change_cdc_dat = data.frame(year = cdc_rate_1000$year, p_change_cdc)
+mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
+sd(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
+wilcox.test(p_change_cdc$p_change_cdc)
+
+### Data are independent
+acf(na.omit(p_change_cdc$p_change_cdc))
+pacf(na.omit(p_change_cdc$p_change_cdc))
+##### Now compare Centerstone to CDC
+wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change_cdc)
+
+
+```
+Figure out how much data you need to detect a .10 percent difference
+```{r}
+library(wmwpow)
+wmwpowd(n = 20, m = 20, distn = "norm(.36,1)", distm = "norm(.02,.02)", sides = "two.sided",
+alpha = 0.05, nsims=10000)
+```
+
