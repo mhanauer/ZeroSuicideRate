@@ -15,7 +15,6 @@ library(prettyR)
 library(rstanarm)
 library(MissMech)
 library(lubridate)
-library(prettyR)
 ```
 Load in data. Need to check variables of interest are doing ok.
 Check descriptives make sure nothing is out of bounds
@@ -429,6 +428,33 @@ dim(zero_suicide_rate)
 dim(zero_suicide_dat_agg)
 zero_suicide_rate
 ```
+#############
+Rate analysis 
+Plot
+#############
+```{r}
+library(descr)
+
+zero_suicide_dat_agg$death_date[58] 
+zero_suicide_rate$death_date[58]
+zero_suicide_rate$suicide_rate = NULL
+zero_suicide_rate$suicide_rate_1000 =  (zero_suicide_rate$suicide / zero_suicide_rate$client_count)*1000
+zero_suicide_rate
+
+library(scales)
+min <- as.Date("2009-4-1")
+max <- as.Date("2019-4-1")
+library(ggplot2)
+ggplot(zero_suicide_rate, aes(x = death_date, y = suicide_rate_1000))+
+  geom_line()+
+  labs(title="Figure 1 suicide rate by year")+
+  geom_vline(xintercept = zero_suicide_rate$death_date[58] , colour="red")+
+  xlab("Date of death")+
+  ylab("Rate of suicides per 1,000 clients")+
+  scale_x_date(breaks = date_breaks("years"), labels = date_format("%Y"), limits = c(min, max))
+```
+
+
 #############
 Rate analysis
 Analysis
