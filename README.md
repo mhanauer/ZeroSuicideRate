@@ -94,29 +94,74 @@ range(zero_suicide_dat$death_date)
 zero_suicide_dat = subset(zero_suicide_dat, death_date < "2020-01-01")
 sum(is.na(zero_suicide_dat$death_date))
 range(zero_suicide_dat$death_date)
+sum(is.na(zero_suicide_dat$death_date))
+#### Create intervention varable
+zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01", 1, 0)
+#### Only looking at 2009 and beyond, because that is all the rate data that we have
+zero_suicide_dat = subset(zero_suicide_dat, death_date >= "2009-04-01")
+```
+
+
+###################
+Count analysis
+Particpant character
+###################
+
+
+```{r}
+range(zero_suicide_dat$death_date, na.rm = TRUE)
+describe.factor(zero_suicide_dat$gender)
+
+### Zero Suicide
+describe.factor(zero_suicide_dat$zero_suicide)
+
+range(zero_suicide_dat$current_path_disenroll_date, na.rm = TRUE)
+#describe.factor(zero_suicide_dat$prim_diagnosis)
+describe.factor(zero_suicide_dat$num_prior_hospital)
+mean(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
+sd(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
+range(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
+
+describe.factor(zero_suicide_dat$age_at_death)
+mean(zero_suicide_dat$age_at_death, na.rm = TRUE)
+sd(zero_suicide_dat$age_at_death, na.rm = TRUE)
+range(zero_suicide_dat$age_at_death, na.rm = TRUE)
+
+
+### Error in pathway descriptives, because there are more deaths prior to enrollment according to death date (i.e. see Zero Suicide variables)
+describe.factor(zero_suicide_dat$zero_suicide)
+describe.factor(zero_suicide_dat$path_enroll_death)
+
+
 ```
 Questions to answer
-1. Raw number of people who died by suicide while on the pathway at the time of death: 13
+1. Raw number of people who died by suicide while on the pathway at the time of death: 16
 
 2. Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death): 16
 
 3. Raw number of people who died by suicide who had never been on the pathway at the time of death: 67
 ```{r}
-zero_suicide_questions = data.frame(path_enroll_death = zero_suicide_dat$path_enroll_death, current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date)
+zero_suicide_questions = data.frame(current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date)
+
 head(zero_suicide_questions)
 ## Get rid of anyone before implementation
-zero_suicide_questions = subset(zero_suicide_questions, path_enroll_death != "Pre_Path")
+zero_suicide_questions = subset(zero_suicide_questions, death_date >= "2014-01-01")
+dim(zero_suicide_questions)
+
 zero_suicide_questions[is.na(zero_suicide_questions)] = "2020-01-01"
 dim(zero_suicide_questions)
+
 ## Assuming NAs are N's
 ### Number of people never on the pathway
-zero_suicide_q1 = subset(zero_suicide_questions, current_path_enroll_date < "2020-01-01")
+zero_suicide_q1 = subset(zero_suicide_questions, current_path_enroll_date != "2020-01-01")
+dim(zero_suicide_q1)
+sum(is.na(zero_suicide_q1$current_path_disenroll_date))
 ### Now need number to get rid of those who were on the pathway, but died after disenrollment (i.e. question three)
-zero_suicide_q1$died_after_diss = ifelse(zero_suicide_q1$death_date > zero_suicide_q1$current_path_disenroll_date, 0, 1)
+zero_suicide_q1$died_after_diss = ifelse(zero_suicide_q1$death_date > zero_suicide_q1$current_path_disenroll_date, 1, 0)
 
 
 ##### Now get rid of those people who died after diss
-zero_suicide_q1 = subset(zero_suicide_q1, died_after_diss == 1)
+zero_suicide_q1 = subset(zero_suicide_q1, died_after_diss == 0)
 zero_suicide_q1
 
 ## Q1 answer
@@ -154,31 +199,7 @@ describe.factor(zero_suicide_q2$death_after_diss)
 dim(zero_suicide_q3)[1]
 
 ```
-###################
-Count analysis
-Particpant character
-###################
 
-
-```{r}
-#### Only looking at 2009 and beyond, because that is all the rate data that we have
-zero_suicide_dat = subset(zero_suicide_dat, death_date >= "2009-04-01")
-describe.factor(zero_suicide_dat$death_date)
-range(zero_suicide_dat$death_date, na.rm = TRUE)
-describe.factor(zero_suicide_dat$gender)
-#describe.factor(zero_suicide_dat$event)
-describe.factor(zero_suicide_dat$cssrs_date)
-range(zero_suicide_dat$current_path_enroll_date, na.rm = TRUE)
-range(zero_suicide_dat$current_path_disenroll_date, na.rm = TRUE)
-#describe.factor(zero_suicide_dat$prim_diagnosis)
-describe.factor(zero_suicide_dat$num_prior_hospital)
-describe.factor(zero_suicide_dat$total_kept_services)
-#### Figure who these people are 2208-07-03"
-range(zero_suicide_dat$first_contact_date, na.rm = TRUE)
-range(zero_suicide_dat$centernet_term_date, na.rm = TRUE)
-head(zero_suicide_dat)
-describe.factor(zero_suicide_dat$age_at_death)
-```
 #########################
 Other particpant charac
 Maybe urban rural divide?
@@ -204,10 +225,13 @@ zero_suicide_dat
 ### Number of deaths
 dim(zero_suicide_dat)[1]
 
-#### Create intervention varable
-zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01", 1, 0)
 #### Number of deaths before and after
 describe.factor(zero_suicide_dat$zero_suicide)
+### compare means
+library(descr)
+pre_dat = subset(zero_suicide_dat, zero_suicide == 0)
+pre_mean = mean(pre_dat$zero_suicide)
+pre_mean
 ## Time range for deaths
 range(zero_suicide_dat$death_date, na.rm = TRUE)
 describe.factor(zero_suicide_dat$gender)
