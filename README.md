@@ -168,7 +168,6 @@ zero_suicide_q1
 dim(zero_suicide_q1)[1]
 
 
-
 ### Answer people who died on pathway and were on the pathway at one point, but not at time of death need to confirm NAs assuming that mean no path.  Get people were on the pathway at one points which means any date on current enrollment.  Make the NAs for that variable "20120-01-01" 
 zero_suicide_q2 = 
 zero_suicide_q2 = subset(zero_suicide_questions, current_path_disenroll_date != "2020-01-01")
@@ -185,7 +184,7 @@ dim(zero_suicide_q3)[1]
 
 
 dim(zero_suicide_questions)
-13+16+67
+13+16+54
 ```
 Answers
 ```{r}
@@ -213,43 +212,7 @@ location = data.frame(location = zero_suicide_dat$loc_first_word)
 write.csv(location, "location.csv", row.names = FALSE)
 ```
 
-Need to figure out what to do with Centerstone location
-Prefer to just include two locations one that is the biggest (or include those locations that we have some sense either did really well or really poorly).
 
-Figure out how to aggregate with full date (need to aggregate by month not day).  
-
-
-Descriptives for grant and paper (need to get a few more cleaned before final)
-```{r}
-zero_suicide_dat
-### Number of deaths
-dim(zero_suicide_dat)[1]
-
-#### Number of deaths before and after
-describe.factor(zero_suicide_dat$zero_suicide)
-### compare means
-library(descr)
-pre_dat = subset(zero_suicide_dat, zero_suicide == 0)
-pre_mean = mean(pre_dat$zero_suicide)
-pre_mean
-## Time range for deaths
-range(zero_suicide_dat$death_date, na.rm = TRUE)
-describe.factor(zero_suicide_dat$gender)
-## Location
-describe.factor(zero_suicide_dat$loc_first_word)
-### average number of prior hopsital visits
-mean(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
-sd(zero_suicide_dat$num_prior_hospital, na.rm = TRUE)
-### Average number of kept appointments get clarification
-mean(zero_suicide_dat$total_kept_services, na.rm =TRUE)
-sd(zero_suicide_dat$total_kept_services, na.rm =TRUE)
-#### Death during implementation
-
-### Average age at death
-mean(zero_suicide_dat$age_at_death, na.rm = TRUE)
-sd(zero_suicide_dat$age_at_death, na.rm = TRUE)
-
-```
 ######################
 Count analysis
 Data cleaning
