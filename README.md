@@ -41,7 +41,7 @@ Put together variables you want which are below
 ```{r}
 head(zero_suicide)
 head(zero_suicide$centernet.termination.date)
-zero_suicide_dat = data.frame(death_date = zero_suicide$Date.of.Incident.k., location = zero_suicide$Centerstone.Location, dob = zero_suicide$Date.of.Birth.k., gender = zero_suicide$Gender, event = zero_suicide$Type.of.Event, path_enroll_death = zero_suicide$Enrolled.in.Pathway...time.of.Incident, cssrs_date = zero_suicide$Date.of.Most.Recent.C.SSRS, current_path_enroll_date = zero_suicide$most.current.Pathway.Date.Enrolled, current_path_disenroll_date = zero_suicide$Most.current.Pathway.Date.Disenrolled, prim_diagnosis = zero_suicide$Primary.Diagnosis, num_prior_hospital = zero_suicide$Number.of.Prior.Hospital.Admissions, total_kept_services = zero_suicide$X..of.total.kept.services, first_contact_date = zero_suicide$first.service.contact.date.with.centerstone, centernet_term_date = zero_suicide$centernet.termination.date)
+zero_suicide_dat = data.frame(death_date = zero_suicide$Date.of.Incident.k., location = zero_suicide$Centerstone.Location, dob = zero_suicide$Date.of.Birth.k., gender = zero_suicide$Gender, event = zero_suicide$Type.of.Event, path_enroll_death = zero_suicide$Enrolled.in.Pathway...time.of.Incident, cssrs_date = zero_suicide$Date.of.Most.Recent.C.SSRS, current_path_enroll_date = zero_suicide$most.current.Pathway.Date.Enrolled, current_path_disenroll_date = zero_suicide$Most.current.Pathway.Date.Disenrolled, prim_diagnosis = zero_suicide$Primary.Diagnosis, num_prior_hospital = zero_suicide$Number.of.Prior.Hospital.Admissions, total_kept_services = zero_suicide$X..of.total.kept.services, first_contact_date = zero_suicide$first.service.contact.date.with.centerstone, centernet_term_date = zero_suicide$centernet.termination.date, ID = zero_suicide$Consumer.ID.)
 
 head(zero_suicide_dat)
 zero_suicide_dat = subset(zero_suicide_dat, event == "SDC" | event == "SDC, HCBC" | event == "SDC/HBC")
@@ -135,13 +135,13 @@ describe.factor(zero_suicide_dat$path_enroll_death)
 
 ```
 Questions to answer
-1. Raw number of people who died by suicide while on the pathway at the time of death: 16
+1. Raw number of people who died by suicide while on the pathway at the time of death: 13
 
 2. Raw number of people who died by suicide who had previously been on the pathway (but are no longer on the pathway at the time of death): 16
 
-3. Raw number of people who died by suicide who had never been on the pathway at the time of death: 67
+3. Raw number of people who died by suicide who had never been on the pathway at the time of death: 54
 ```{r}
-zero_suicide_questions = data.frame(current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date)
+zero_suicide_questions = data.frame(current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date, ID= zero_suicide_dat$ID)
 
 head(zero_suicide_questions)
 ## Get rid of anyone before implementation
@@ -185,6 +185,10 @@ dim(zero_suicide_q3)[1]
 
 dim(zero_suicide_questions)
 13+16+54
+
+##### Those who were on the pathway at one point in time
+pathway_any = subset(zero_suicide_questions, current_path_enroll_date != "2020-01-01")
+pathway_any
 ```
 Answers
 ```{r}
