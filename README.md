@@ -188,7 +188,7 @@ dim(zero_suicide_questions)
 
 ##### Those who were on the pathway at one point in time
 pathway_any = subset(zero_suicide_questions, current_path_enroll_date != "2020-01-01")
-pathway_any
+write.csv(pathway_any, "pathway_any.csv", row.names = FALSE)
 ```
 Answers
 ```{r}
