@@ -551,6 +551,8 @@ count_2014_2015 =compmeans(zero_suicide_rate_2014_2015$suicide, zero_suicide_rat
 count_2014_2015
 (.67-1.92)/1.92
 
+
+
 ```
 
 
