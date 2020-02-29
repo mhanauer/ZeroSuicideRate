@@ -282,6 +282,8 @@ range_after = subset(zero_suicide_dat_agg, zero_suicide == 1)
 
 range(range_before$suicide)
 range(range_after$suicide)
+
+
 ```
 
 
@@ -534,6 +536,25 @@ for(i in 1:length(lag_n_long)){
 trend_station_long
 
 ```
+Drop after year one in rate and count
+```{r}
+zero_suicide_rate_2014_2015 = subset(zero_suicide_rate, zero_suicide_rate$death_date < "2016-01-01" & zero_suicide_rate$death_date > "2013-12-31")
+zero_suicide_rate_2014_2015$death_date
+zero_suicide_rate_2014_2015$death_date = floor_date(zero_suicide_rate_2014_2015$death_date, unit = "year")
+compare_2014_2015 = compmeans(zero_suicide_rate_2014_2015$suicide_rate_1000, zero_suicide_rate_2014_2015$death_date)
+compare_2014_2015
+p_change_rate = (compare_2014_2015[1]- compare_2014_2015[2]) / compare_2014_2015[2]
+p_change_rate
+
+zero_suicide_rate_2014_2015$suicide = as.numeric(zero_suicide_rate_2014_2015$suicide)
+count_2014_2015 =compmeans(zero_suicide_rate_2014_2015$suicide, zero_suicide_rate_2014_2015$death_date) 
+count_2014_2015
+(.67-1.92)/1.92
+
+```
+
+
+
 ###########################
 CDC Comparison analysis
 Data cleaning
