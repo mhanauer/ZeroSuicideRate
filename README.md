@@ -563,12 +563,8 @@ What is the count of zero deaths per month
 ```{r}
 zero_dat =zero_suicide_rate 
 zero_dat$death_date
-zero_dat$zero_suicide_death = ifelse(zero_dat$suicide == 0,1,0)
 zero_dat = zero_dat[c("death_date", "suicide")]
-zero_dat
-zero_dat_sum_month = zero_dat %>%
-  group_by(death_date) %>%
-  summarise_all(funs(sum))
+zero_dat_sum_month = zero_dat
 zero_dat_sum_month$death_date  = floor_date(zero_dat_sum_month$death_date, unit = "year")
 zero_dat_sum_month$suicide_zero = ifelse(zero_dat_sum_month$suicide == 0,1,0)
 zero_dat_sum_month$suicide = NULL
@@ -576,6 +572,7 @@ zero_dat_sum_year = zero_dat_sum_month %>%
   group_by(death_date) %>%
   summarise_all(funs(sum))
 names(zero_dat_sum_year) = c("year", "n_months_zero_suicides")
+## 2009 should be 1 and 2010 should be 5
 zero_dat_sum_year
 
 mean_zero_suicide_all = mean(zero_dat_sum_year$n_months_zero_suicides)
@@ -583,13 +580,13 @@ mean_zero_suicide_all
 sd_zero_suicide_all = sd(zero_dat_sum_year$n_months_zero_suicides)
 sd_zero_suicide_all
 
-zero_dat_sum_year_pre = subset(zero_dat_sum_year, year < "2015-01-01")
+zero_dat_sum_year_pre = subset(zero_dat_sum_year, year < "2014-01-01")
 mean_zero_suicide_pre = mean(zero_dat_sum_year_pre$n_months_zero_suicides)
 mean_zero_suicide_pre
 sd_zero_suicide_pre = sd(zero_dat_sum_year_pre$n_months_zero_suicides)
 sd_zero_suicide_pre
 
-zero_dat_sum_year_post = subset(zero_dat_sum_year, year > "2014-01-01")
+zero_dat_sum_year_post = subset(zero_dat_sum_year, year >= "2014-01-01")
 mean_zero_suicide_post = mean(zero_dat_sum_year_post$n_months_zero_suicides)
 mean_zero_suicide_post
 sd_zero_suicide_post = sd(zero_dat_sum_year_post$n_months_zero_suicides)
@@ -606,7 +603,7 @@ mean_sd_zero_suicide = data.frame(mean_zero_suicide_all, sd_zero_suicide_all)
 mean_sd_zero_suicide
 names = c("all", "pre", "post")
 mean_sd_zero_suicide = data.frame(names, mean_sd_zero_suicide)
-names(mean_sd_zero_suicide) = c("names", "mean", "sd")
+names(mean_sd_zero_suicide) = c("stage", "mean", "sd")
 rownames(mean_sd_zero_suicide)= NULL
 mean_sd_zero_suicide[,2:3] = round(mean_sd_zero_suicide[,2:3],2)
 mean_sd_zero_suicide
