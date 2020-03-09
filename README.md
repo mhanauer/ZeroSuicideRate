@@ -558,284 +558,61 @@ count_2014_2015
 
 
 ```
-
-
-
-###########################
-CDC Comparison analysis
-Data cleaning
-###########################
-
-
-Need number of deaths per year per age group and total number of people in each age group.  Then you can follow the formula in the excel sheet.
-Need total deaths by age group per year
-
-So create an age group variable
-
-Then get the counts per year per age group
-
-Got rid of two people with missing death dates, but we know died by suicide.
+What is the count and average number of zero deaths per year
+What is the count of zero deaths per month 
 ```{r}
-range(zero_suicide_dat$age_at_death, na.rm = TRUE)
+zero_dat =zero_suicide_rate 
+zero_dat$death_date
+zero_dat$zero_suicide_death = ifelse(zero_dat$suicide == 0,1,0)
+zero_dat = zero_dat[c("death_date", "suicide")]
+zero_dat
+zero_dat_sum_month = zero_dat %>%
+  group_by(death_date) %>%
+  summarise_all(funs(sum))
+zero_dat_sum_month$death_date  = floor_date(zero_dat_sum_month$death_date, unit = "year")
+zero_dat_sum_month$suicide_zero = ifelse(zero_dat_sum_month$suicide == 0,1,0)
+zero_dat_sum_month$suicide = NULL
+zero_dat_sum_year = zero_dat_sum_month %>%
+  group_by(death_date) %>%
+  summarise_all(funs(sum))
+names(zero_dat_sum_year) = c("year", "n_months_zero_suicides")
+zero_dat_sum_year
 
-zero_suicide_dat$suicide = rep(1, dim(zero_suicide_dat)[1])
+mean_zero_suicide_all = mean(zero_dat_sum_year$n_months_zero_suicides)
+mean_zero_suicide_all
+sd_zero_suicide_all = sd(zero_dat_sum_year$n_months_zero_suicides)
+sd_zero_suicide_all
 
-zero_suicide_cdc = data.frame(death_date = zero_suicide_dat$death_date, suicide = zero_suicide_dat$suicide, age_at_death = zero_suicide_dat$age_at_death)
+zero_dat_sum_year_pre = subset(zero_dat_sum_year, year < "2015-01-01")
+mean_zero_suicide_pre = mean(zero_dat_sum_year_pre$n_months_zero_suicides)
+mean_zero_suicide_pre
+sd_zero_suicide_pre = sd(zero_dat_sum_year_pre$n_months_zero_suicides)
+sd_zero_suicide_pre
 
-zero_suicide_cdc$age_at_death_cat = ifelse(zero_suicide_cdc$age_at_death <= 14, "5-14", ifelse(zero_suicide_cdc$age_at_death <= 24, "15-24", ifelse(zero_suicide_cdc$age_at_death <= 34, "25-34", ifelse(zero_suicide_cdc$age_at_death <= 44, "35-44", ifelse(zero_suicide_cdc$age_at_death <= 54, "45-54", ifelse(zero_suicide_cdc$age_at_death <= 64, "55-64", ifelse(zero_suicide_cdc$age_at_death <= 74, "65-74", "75+")))))))
+zero_dat_sum_year_post = subset(zero_dat_sum_year, year > "2014-01-01")
+mean_zero_suicide_post = mean(zero_dat_sum_year_post$n_months_zero_suicides)
+mean_zero_suicide_post
+sd_zero_suicide_post = sd(zero_dat_sum_year_post$n_months_zero_suicides)
+sd_zero_suicide_post
 
+mean_zero_suicide_all = rbind(mean_zero_suicide_all, mean_zero_suicide_pre, mean_zero_suicide_post)
+mean_zero_suicide_all
 
-### Check that it worked
-zero_suicide_cdc
-describe.factor(zero_suicide_cdc$age_at_death_cat)
-zero_suicide_cdc = subset(zero_suicide_cdc, age_at_death_cat != "5-14")
-
-
-zero_suicide_cdc$death_date = floor_date(zero_suicide_cdc$death_date, unit = "year")
-zero_suicide_cdc$death_date
-centerstone_cdc_suicides = zero_suicide_cdc %>%
-  group_by(death_date, age_at_death_cat) %>%
-  summarise_if(is.numeric, sum)
-
-centerstone_cdc_suicides$age_at_death = NULL
-centerstone_cdc_suicides
-```
-#################
-CDC Analysis
-Data cleaning
-#################
-Notes
-Load in the data for cdc and centerstone cdc rates
-```{r}
-
-## Adjust rate from cdc
-head(cdc_rate)
-### Centerstone totals population by age
-head(centerstone_cdc_pop)
-dim(centerstone_cdc_pop)
-
-### Subset set cdc to only dates in cdc rate
-centerstone_cdc_suicides = subset(centerstone_cdc_suicides, death_date > "2008-01-01" & death_date < "2018-01-01")
-range(zero_suicide_cdc$death_date, na.rm = TRUE)
-
-### Only three deaths at 14 just getting rid of them
-describe.factor(centerstone_cdc_suicides$age_at_death_cat)
-#### Need to add in zero rows for those counts that are zero
-#2009 55-64
-#2010	15-24
-#2010	55-64
-#2011	45-54
-#2011	55-64
-#2011	65-74
-#2012	65-74
-#2013	15-24
-#2013	65-74
-#2014	55-64
-#2014	65-74
-#2015	65-74
-#2016	15-24
-#2016	65-74
-#2017	65-74
+sd_zero_suicide_all = rbind(sd_zero_suicide_all, sd_zero_suicide_pre, sd_zero_suicide_post)
 
 
-### Generate data set with missing zero dates and then rbind and order next
-missing_zeros = data.frame(death_date = c("2009-01-01","2010-01-01","2010-01-01", "2011-01-01","2011-01-01", "2013-01-01", "2014-01-01", "2016-01-01"), age_at_death_cat = c("55-64","15-24", "55-64", "45-54", "55-64", "15-24", "55-64", "15-24"), suicide = rep(0, 8))
 
-missing_zeros$death_date = ymd(missing_zeros$death_date)
-
-missing_zeros
-write.csv(centerstone_cdc_suicides, "centerstone_cdc_suicides.csv", row.names = FALSE)
-centerstone_cdc_suicides = read.csv("centerstone_cdc_suicides.csv", header = TRUE)
-write.csv(missing_zeros, "missing_zeros.csv",row.names = FALSE)
-missing_zeros = read.csv("missing_zeros.csv", header= TRUE)
-centerstone_cdc_suicides  = rbind(centerstone_cdc_suicides, missing_zeros)
-centerstone_cdc_suicides
-### Now order by year then age group
-### Create a grouping variable to group by age death cat not working
-centerstone_cdc_suicides$age_group = ifelse(centerstone_cdc_suicides$age_at_death_cat == "15-24", 0, ifelse(centerstone_cdc_suicides$age_at_death_cat == "25-34", 1, ifelse(centerstone_cdc_suicides$age_at_death_cat == "35-44", 2, ifelse(centerstone_cdc_suicides$age_at_death_cat == "45-54", 3, ifelse(centerstone_cdc_suicides$age_at_death_cat == "55-64", 4, ifelse(centerstone_cdc_suicides$age_at_death_cat == "65-74", 5, "Wrong"))))))
-describe.factor(centerstone_cdc_suicides$age_group)
-
-
-centerstone_cdc_suicides = centerstone_cdc_suicides[order(centerstone_cdc_suicides$death_date, centerstone_cdc_suicides$age_group),]
-centerstone_cdc_suicides
-##### Now grab population from pop data set
-centerstone_cdc_suicides$pop = centerstone_cdc_pop$ClientCount
-####
-### Dates are all in order
-centerstone_cdc_suicides$death_date == centerstone_cdc_suicides$death_date
-centerstone_cdc_suicides$age_group = NULL
-### Now we need to divide by the number by the pop multiple by 100,000
-#### Changed to 1,000 for comparison
-centerstone_cdc_suicides$crude_rate = (centerstone_cdc_suicides$suicide/centerstone_cdc_suicides$pop)*1000
-centerstone_cdc_suicides
-
-
-centerstone_cdc_suicides
-### Now get age adjustment which means takes the standard population percentage of age groups times the crude rate then summed this is the standardization part
-stand_2000_age = rep(c(0.139, 0.138, 0.163, 0.135, 0.087), 9)
-length(stand_2000_age)
-dim(centerstone_cdc_suicides)
-
-#### Now take the crude rate multiplied by the age adjust 
-centerstone_cdc_suicides$age_adjust_rate = centerstone_cdc_suicides$crude_rate*stand_2000_age
-centerstone_cdc_suicides
-#### Now sum by year 
-centerstone_cdc_suicides_rate = centerstone_cdc_suicides %>%
-  group_by(death_date)%>%
-  summarise_if(is.numeric, sum)
-centerstone_cdc_suicides_rate
-#### Clean up CDC rate
-cdc_rate = subset(cdc_rate, year > 2008)
-cdc_rate$year = paste0(cdc_rate$year,"-01", "-01")
-cdc_rate$year = ymd(cdc_rate$year)
-
-### CDC rate for 1,000
-setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/CDC")
-cdc_rate_1000 = read.csv("cdc_rate_1000.csv", header = TRUE)
-cdc_rate_1000 = subset(cdc_rate_1000, year > 2008)
-cdc_rate_1000$year = paste0(cdc_rate_1000$year,"-01", "-01")
-cdc_rate_1000$year = ymd(cdc_rate_1000$year)
-cdc_rate_1000
-```
-Now plot the CDC rate 
-```{r}
-library(ggplot2)
-centerstone_cdc_suicides_rate$death_date = ymd(centerstone_cdc_suicides_rate$death_date)
-centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
-  geom_line()+  
-  labs(title="Figure 2 Centerstone age adjusted suicide (per 100,000 clients) rate 2009 to 2017")+
-    scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
-  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
-  xlab("Year")+
-  ylab("Centerstone age adjusted suicide rate")+
-  theme(axis.title.y= element_text(size = 8))
-centerstone_rate_graph
-############
-#########
-
-cdc_rate_graph = ggplot(cdc_rate, aes(x = year, y = CDC_rate))+
-  geom_line()+  
-  labs(title="Figure 3 CDC age adjusted suicide (per 100,000 clients) rate 2009 to 2017")+
-    scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
-  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
-  xlab("Year")+
-  ylab("CDC age adjusted suicide rate")+
-  ylim(min = 8, max = 12)+ 
-  theme(axis.title.y= element_text(size = 8))
-
-library(gridExtra)
-grid.arrange(centerstone_rate_graph, cdc_rate_graph, nrow = 2)
-
-```
-CDC rate 1,000 
-```{r}
-library(ggplot2)
-centerstone_cdc_suicides_rate$death_date = ymd(centerstone_cdc_suicides_rate$death_date)
-centerstone_rate_graph = ggplot(centerstone_cdc_suicides_rate, aes(x = death_date, y = age_adjust_rate))+
-  geom_line()+  
-  labs(title="Figure 2 Centerstone age adjusted suicide (per 1,000 clients) rate 2009 to 2017")+
-  scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
-  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
-  xlab("Year")+
-  ylab("Centerstone age adjusted suicide rate")+
-  theme(axis.title.y= element_text(size = 8))
-centerstone_rate_graph
-############
-#########
-
-cdc_rate_1000_graph = ggplot(cdc_rate_1000, aes(x = year, y = CDC_rate))+
-  geom_line()+  
-  labs(title="Figure 3 CDC age adjusted suicide (per 1,000 people) rate 2009 to 2017")+
-  scale_x_date(breaks= as.Date(c("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01", "2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01")), labels = date_format("%Y"))+ 
-  geom_vline(xintercept = centerstone_cdc_suicides_rate$death_date[6], colour="red")+
-  xlab("Year")+
-  ylab("CDC age adjusted suicide rate")+
-  #ylim(min = .09, max = .2)+ 
-  theme(axis.title.y= element_text(size = 8))
-
-library(gridExtra)
-grid.arrange(centerstone_rate_graph, cdc_rate_1000_graph, nrow = 2)
+mean_sd_zero_suicide = data.frame(mean_zero_suicide_all, sd_zero_suicide_all)
+mean_sd_zero_suicide
+names = c("all", "pre", "post")
+mean_sd_zero_suicide = data.frame(names, mean_sd_zero_suicide)
+names(mean_sd_zero_suicide) = c("names", "mean", "sd")
+rownames(mean_sd_zero_suicide)= NULL
+mean_sd_zero_suicide[,2:3] = round(mean_sd_zero_suicide[,2:3],2)
+mean_sd_zero_suicide
+write.csv(mean_sd_zero_suicide, "mean_sd_zero_suicide.csv", row.names = FALSE)
 
 ```
 
-####################
-CDC Compare analysis
-Compare rate of change
-######################
-Get some p_changes
-```{r}
-centerstone_cdc_suicides_rate
-library(quantmod)
-p_change_centerstone =  Delt(centerstone_cdc_suicides_rate$age_adjust_rate, type = c("arithmetic"))
-colnames(p_change_centerstone) = "p_change_centerstone"
-p_change_centerstone = data.frame(p_change_centerstone)
-p_change_centerstone_dat =  data.frame(year = centerstone_cdc_suicides_rate$death_date, p_change_centerstone)
 
-p_change_centerstone_dat
-mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
-sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
-wilcox.test(p_change_centerstone_dat$p_change_centerstone)
-#### Data are independent
-acf(na.omit(p_change_centerstone_dat$p_change_centerstone))
-pacf(na.omit(p_change_centerstone_dat$p_change_centerstone))
-#### Now do cdc
-p_change_cdc = Delt(cdc_rate$CDC_rate, type = "arithmetic")
-colnames(p_change_cdc) = "p_change_cdc"
-p_change_cdc = data.frame(p_change_cdc)
-p_change_cdc_dat = data.frame(year = cdc_rate$year, p_change_cdc)
-mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
-sd(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
-wilcox.test(p_change_cdc$p_change_cdc)
-
-### Data are independent
-acf(na.omit(p_change_cdc$p_change_cdc))
-pacf(na.omit(p_change_cdc$p_change_cdc))
-##### Now compare Centerstone to CDC
-wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change_cdc)
-
-
-```
-####################
-CDC Compare analysis 1,000
-Compare rate of change
-######################
-Get some p_changes
-```{r}
-centerstone_cdc_suicides_rate
-library(quantmod)
-p_change_centerstone =  Delt(centerstone_cdc_suicides_rate$age_adjust_rate, type = c("arithmetic"))
-colnames(p_change_centerstone) = "p_change_centerstone"
-p_change_centerstone = data.frame(p_change_centerstone)
-p_change_centerstone_dat =  data.frame(year = centerstone_cdc_suicides_rate$death_date, p_change_centerstone)
-
-p_change_centerstone_dat
-mean(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
-sd(p_change_centerstone_dat$p_change_centerstone, na.rm = TRUE)
-wilcox.test(p_change_centerstone_dat$p_change_centerstone)
-#### Data are independent
-acf(na.omit(p_change_centerstone_dat$p_change_centerstone))
-pacf(na.omit(p_change_centerstone_dat$p_change_centerstone))
-#### Now do cdc
-p_change_cdc = Delt(cdc_rate_1000$CDC_rate, type = "arithmetic")
-colnames(p_change_cdc) = "p_change_cdc"
-p_change_cdc = data.frame(p_change_cdc)
-p_change_cdc_dat = data.frame(year = cdc_rate_1000$year, p_change_cdc)
-mean(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
-sd(p_change_cdc_dat$p_change_cdc, na.rm = TRUE)
-wilcox.test(p_change_cdc$p_change_cdc)
-
-### Data are independent
-acf(na.omit(p_change_cdc$p_change_cdc))
-pacf(na.omit(p_change_cdc$p_change_cdc))
-##### Now compare Centerstone to CDC
-wilcox.test(p_change_centerstone_dat$p_change_centerstone, p_change_cdc$p_change_cdc)
-
-
-```
-Figure out how much data you need to detect a .10 percent difference
-```{r}
-library(wmwpow)
-wmwpowd(n = 20, m = 20, distn = "norm(.36,1)", distm = "norm(.02,.02)", sides = "two.sided",
-alpha = 0.05, nsims=10000)
-```
 
