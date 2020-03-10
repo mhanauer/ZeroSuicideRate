@@ -542,6 +542,7 @@ First year greater than  2013-12-31 until less than 2015-01-01
 zero_suicide_rate_2014_2015 = subset(zero_suicide_rate, zero_suicide_rate$death_date < "2015-09-01" & zero_suicide_rate$death_date > "2013-12-31")
 zero_suicide_rate_2014_2015$death_date
 zero_suicide_rate_2014_2015$death_date = floor_date(zero_suicide_rate_2014_2015$death_date, unit = "year")
+zero_suicide_rate_2014_2015
 compare_2014_2015 = compmeans(zero_suicide_rate_2014_2015$suicide_rate_1000, zero_suicide_rate_2014_2015$death_date)
 compare_2014_2015
 p_change_rate = (compare_2014_2015[1]- compare_2014_2015[2]) / compare_2014_2015[2]
@@ -560,6 +561,7 @@ count_2014_2015
 ```
 What is the count and average number of zero deaths per year
 What is the count of zero deaths per month 
+What was the number of months with zero suicides for the first 20 months
 ```{r}
 zero_dat =zero_suicide_rate 
 zero_dat$death_date
@@ -609,6 +611,12 @@ mean_sd_zero_suicide[,2:3] = round(mean_sd_zero_suicide[,2:3],2)
 mean_sd_zero_suicide
 write.csv(mean_sd_zero_suicide, "mean_sd_zero_suicide.csv", row.names = FALSE)
 
+zero_20_month_dat = subset(zero_suicide_rate, zero_suicide_rate$death_date < "2015-09-01" & zero_suicide_rate$death_date > "2013-12-31")
+dim(zero_20_month_dat)
+zero_20_month_dat$zero_month = ifelse(zero_20_month_dat$suicide == 0,1,0)
+zero_month_count= sum(zero_20_month_dat$zero_month)
+zero_month_count
+zero_20_month_dat
 ```
 
 
