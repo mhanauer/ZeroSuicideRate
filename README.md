@@ -99,7 +99,74 @@ sum(is.na(zero_suicide_dat$death_date))
 zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01", 1, 0)
 #### Only looking at 2009 and beyond, because that is all the rate data that we have
 zero_suicide_dat = subset(zero_suicide_dat, death_date >= "2009-04-01")
+zero_suicide_dat$prim_diagnosis
 ```
+############
+Get diagnoses
+Get a word cloud to identify top words
+https://towardsdatascience.com/create-a-word-cloud-with-r-bde3e7422e8a
+
+
+
+```{r}
+library(wordcloud)
+library(RColorBrewer)
+library(wordcloud2)
+library(tm)
+library(SnowballC)
+library(magrittr)
+diagnosis = zero_suicide_dat$prim_diagnosis
+diagnosis = wordStem(diagnosis)
+length(diagnosis)
+diagnosis = tolower(diagnosis)
+### Stem by first comma, because everything after that is a modifer
+test = substr(diagnosis, 1, regexpr(",",diagnosis)-1)
+diag_test = data.frame(diagnosis, test)
+write.csv(diag_test, "diag_test.csv", row.names = FALSE)
+diag_test = read.csv("diag_test.csv", header = TRUE)
+diag_test$test = as.character(diag_test$test)
+diag_test$diagnosis= as.character(diag_test$diagnosis)
+diag_test$test_diag = ifelse(diag_test$test == "", diag_test$diagnosis, diag_test$test)
+diagnosis = diag_test$test_diag
+```
+##########
+Number of words to identify the cases above
+```{r}
+diagnosis_doc = Corpus(VectorSource(diagnosis))
+diagnosis_doc 
+diagnosis_doc <- diagnosis_doc %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+diagnosis_doc <- tm_map(diagnosis_doc, removeWords, stopwords("english"))
+diagnosis_doc
+
+diagnosis_doc <- TermDocumentMatrix(diagnosis_doc) 
+matrix_diagnosis_doc <- as.matrix(diagnosis_doc) 
+words_diagnosis_doc <- sort(rowSums(matrix_diagnosis_doc),decreasing=TRUE) 
+dat_diagnosis_doc <- data.frame(word = names(words_diagnosis_doc),freq=words_diagnosis_doc)
+dat_diagnosis_doc
+```
+Put together into bipolar
+bipolar, biplor, bpi
+
+Put together for depressed
+depressive, depressed, dep, depress
+
+Need to figure out bipolar comes before depressed
+Put together for ptsd
+ptsd, posttraumatic
+
+put together for anxiety
+anxiety, anviety, gad
+
+Schizo
+schizophrenia, schizoaffective, schiz, schizo
+
+```{r}
+
+```
+
 
 
 ###################
