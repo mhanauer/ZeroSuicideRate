@@ -128,6 +128,8 @@ diag_test$test = as.character(diag_test$test)
 diag_test$diagnosis= as.character(diag_test$diagnosis)
 diag_test$test_diag = ifelse(diag_test$test == "", diag_test$diagnosis, diag_test$test)
 diagnosis = diag_test$test_diag
+diagnosis = ifelse(diagnosis == "", "none", diagnosis) 
+diagnosis
 ```
 ##########
 Number of words to identify the cases above
@@ -155,7 +157,7 @@ depressive, depressed, dep, depress
 
 Need to figure out bipolar comes before depressed
 Put together for ptsd
-ptsd, posttraumatic
+
 
 put together for anxiety
 anxiety, anviety, gad
@@ -163,8 +165,54 @@ anxiety, anviety, gad
 Schizo
 schizophrenia, schizoaffective, schiz, schizo
 
-```{r}
+Shouldn't be any overlapping check
 
+```{r}
+bi_pattern = c("bipolar", "biplor", "bpi")
+bipolar =  grepl(paste(bi_pattern, collapse = "|"), diagnosis)
+sum(bipolar)
+bipolar
+dep_pattern = c("depressive", "depressed", "dep", "depress")
+depressed = grepl(paste(dep_pattern, collapse = "|"), diagnosis)
+sum(depressed)
+
+ptsd_pattern = c("ptsd", "posttraumatic")
+ptsd = grepl(paste(ptsd_pattern, collapse = "|"), diagnosis)
+sum(ptsd)
+
+anxiety_pattern = c("anxiety", "anviety", "gad")
+anxiety = grepl(paste(anxiety_pattern, collapse = "|"), diagnosis)
+sum(anxiety)
+
+schizo_pattern = c("schizophrenia", "schizoaffective", "schiz", "schizo")
+schizo = grepl(paste(schizo_pattern, collapse = "|"), diagnosis)
+sum(schizo)
+
+none = grepl("none", diagnosis)
+sum(none)
+
+diag_dat = data.frame(bipolar, depressed,ptsd, anxiety, schizo, none)
+
+
+diag_dat$overlap_diag = rowSums(diag_dat)
+diag_dat_overlap = subset(diag_dat, overlap_diag > 1)
+dim(diag_dat_overlap)
+write.csv(diag_dat_overlap, "diag_dat_overlap.csv")
+
+## overlap is all bipolar and 56 is "schizoaffective biplor type "
+diag_dat$depressed[c(15,28,31,35,37,40,70)] = ifelse(diag_dat$depressed[c(15,28,31,35,37,40,70)] == TRUE, FALSE, TRUE)
+diag_dat$bipolar[c(56)] = ifelse(diag_dat$bipolar[c(56)] == TRUE, FALSE, TRUE)
+diag_dat$overlap_diag = rowSums(diag_dat[,1:6])
+diag_dat_overlap = subset(diag_dat, overlap_diag > 1)
+diag_dat = data.frame(diag_dat)
+library(psych)
+library(prettyR)
+diag_dat = round(apply(diag_dat, 2, function(x){describe.factor(x)}),2)
+diag_dat = data.frame(diag_dat)
+diag_dat$id = c("count0", "percent0", "count1","percent1")
+diag_dat
+32.00	+34.00	+9.00	+7.00	+13.00	+8.00	+36.0
+23.02+24.46	+6.47	+5.04	+9.35	+5.76+25.9	
 ```
 
 
