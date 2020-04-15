@@ -15,6 +15,7 @@ library(prettyR)
 library(rstanarm)
 library(MissMech)
 library(lubridate)
+library(prettyR)
 ```
 Load in data. Need to check variables of interest are doing ok.
 Check descriptives make sure nothing is out of bounds
@@ -100,6 +101,7 @@ zero_suicide_dat$zero_suicide = ifelse(zero_suicide_dat$death_date >="2014-01-01
 #### Only looking at 2009 and beyond, because that is all the rate data that we have
 zero_suicide_dat = subset(zero_suicide_dat, death_date >= "2009-04-01")
 zero_suicide_dat$prim_diagnosis
+write.csv(zero_suicide_dat, "zero_suicide_dat.csv", row.names = FALSE)
 ```
 ############
 Get diagnoses
