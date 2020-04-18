@@ -194,21 +194,31 @@ none = grepl("none", diagnosis)
 sum(none)
 
 diag_dat = data.frame(bipolar, depressed,ptsd, anxiety, schizo, none)
-
+diag_dat
 
 diag_dat$overlap_diag = rowSums(diag_dat)
 diag_dat_overlap = subset(diag_dat, overlap_diag > 1)
 dim(diag_dat_overlap)
 write.csv(diag_dat_overlap, "diag_dat_overlap.csv")
-
+diag_dat_overlap
 ## overlap is all bipolar and 56 is "schizoaffective biplor type "
 diag_dat$depressed[c(15,28,31,35,37,40,70)] = ifelse(diag_dat$depressed[c(15,28,31,35,37,40,70)] == TRUE, FALSE, TRUE)
 diag_dat$bipolar[c(56)] = ifelse(diag_dat$bipolar[c(56)] == TRUE, FALSE, TRUE)
-diag_dat$overlap_diag = rowSums(diag_dat[,1:6])
-diag_dat_overlap = subset(diag_dat, overlap_diag > 1)
+diag_dat$another = rowSums(diag_dat[,1:6])
+diag_dat$another= ifelse(diag_dat$another < 1, 1, 0)
+diag_dat$overlap_diag = NULL
+
 diag_dat = data.frame(diag_dat)
 library(psych)
 library(prettyR)
+diag_dat_test = diag_dat
+write.csv(diag_dat_test, "diag_dat_test.csv", row.names = FALSE)
+
+diag_dat_test = apply(diag_dat_test, 2, function(x){ifelse(x == TRUE, 1, 0)})
+diag_dat_test = data.frame(diag_dat_test)
+diag_dat_test$diagnosis = ifelse(diag_dat_test$bipolar == 1, "bipolar", ifelse(diag_dat_test$depressed == 1, "depressed", ifelse(diag_dat_test$ptsd == 1, "ptsd", ifelse(diag_dat_test$anxiety == 1, "anxiety", ifelse(diag_dat_test$schizo == 1, "schizo", ifelse(diag_dat_test$none == 1, "none", ifelse(diag_dat_test$another == 1, "another", "wrong")))))))
+diag_dat_test =data.frame(diagnosis_matt_code = diag_dat_test$diagnosis, diagnosis)
+diag_dat_test
 diag_dat = round(apply(diag_dat, 2, function(x){describe.factor(x)}),2)
 diag_dat = data.frame(diag_dat)
 diag_dat$id = c("count0", "percent0", "count1","percent1")
