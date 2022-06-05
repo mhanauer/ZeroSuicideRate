@@ -13,9 +13,8 @@ Libraring packages
 library(stringr)
 library(prettyR)
 library(rstanarm)
-library(MissMech)
-library(lubridate)
-library(prettyR)
+library(tidyverse)
+library(dplyr)
 ```
 Load in data. Need to check variables of interest are doing ok.
 Check descriptives make sure nothing is out of bounds
@@ -27,9 +26,9 @@ setwd("P:/Evaluation/TN Lives Count_Writing/ZeroSuicide/CDC")
 cdc_rate = read.csv("cdc_rate.csv", header = TRUE)
 centerstone_cdc_pop = read.csv("centerstone_cdc_pop.csv", header = TRUE)
 
-zero_suicide_denom
-cdc_rate
-centerstone_cdc_pop
+head(zero_suicide_denom)
+head(cdc_rate)
+head(centerstone_cdc_pop)
 
 ```
 #######################
@@ -268,7 +267,7 @@ Questions to answer
 
 3. Raw number of people who died by suicide who had never been on the pathway at the time of death: 54
 ```{r}
-zero_suicide_questions = data.frame(current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date, ID= zero_suicide_dat$ID)
+zero_suicide_questions = data.frame(current_path_disenroll_date = zero_suicide_dat$current_path_disenroll_date, current_path_enroll_date= zero_suicide_dat$current_path_enroll_date, death_date = zero_suicide_dat$death_date, ID= zero_suicide_dat$ID, first_contact_date = zero_suicide_dat$first_contact_date)
 
 head(zero_suicide_questions)
 ## Get rid of anyone before implementation
@@ -329,6 +328,33 @@ describe.factor(zero_suicide_q2$death_after_diss)
 dim(zero_suicide_q3)[1]
 
 ```
+#### Survival analysis for those on the pathway and those not between the number of deaths.  Evaluating if time to death if different.
+There is no need for censoring, because everyone died so a simple wilcox test between the time for those died while on the pathway and those who were never on the pathway
+
+2020-01-01 means you were never on the pathway.  Terrible coding by past me.  Also filtering anyone with first contact date (a unique indicator) for greater than or equal 2014-01-01 as this is when decided Zero Suicide and the pathway started.  The total n makes the number of suicides post Zero Suicide as well.
+```{r}
+head(zero_suicide_questions)
+zero_suicide_pathway_survival = zero_suicide_questions %>%
+  mutate(pathway_indicator = if_else(current_path_enroll_date == "2020-01-01", 0, 1)) %>%
+  mutate(time_to_death = death_date - first_contact_date) %>%
+  mutate(time_to_death = as.numeric(time_to_death)) %>%
+  # Remove negative values 
+  filter(time_to_death >= 0)
+
+zero_suicide_pathway_survival
+```
+######################
+Simple wilcox analysis for those on and off the pathway after it started for time to death
+```{r}
+zero_suicide_pathway_survival %>%
+  group_by(pathway_indicator) %>%
+  summarise_at(vars(time_to_death), list(mean = mean))
+
+wilcox.test(zero_suicide_pathway_survival$time_to_death ~ zero_suicide_pathway_survival$pathway_indicator)
+
+```
+
+
 
 #########################
 Other particpant charac
